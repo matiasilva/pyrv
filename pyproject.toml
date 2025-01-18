@@ -1,0 +1,24 @@
+[project]
+name = "pyrv"
+version = "0.1.0"
+description = "RV32I instruction set simulator"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.ruff.lint]
+select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+  #"ANN",
+]
