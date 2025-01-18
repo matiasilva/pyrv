@@ -1,3 +1,7 @@
-li x1, 5        # Load immediate 5 into x1
-li x2, 7        # Load immediate 7 into x2
-add x3, x1, x2  # x3 = x1 + x2
+addi t0, x0, 10
+addi t1, x0, 20
+add t2, t0, t1
+sub t3, t1, t0
+sll t4, t0, t1
+srl t5, t1, t0
+sra t6, t1, t0

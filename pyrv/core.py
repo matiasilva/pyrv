@@ -1,47 +1,76 @@
-from abc import ABC, abstractmethod
 import re
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import TypedDict, TypeVar
 
-from helpers import MutableRegister, RegisterBank
+from helpers import MutableRegister, RegisterBank, se
 
 x = RegisterBank()
 pc = MutableRegister()
 
+T = TypeVar("T", bound=Mapping)
 
-class Instruction(ABC):
+
+class IType(TypedDict):
+    rd: int | str
+    rs1: int | str
+    imm: int
+
+
+class RType(TypedDict):
+    rd: int | str
+    rs1: int | str
+    rs2: int | str
+
+
+class Instruction[T](ABC):
+    def __init__(self, frame: T):
+        self._frame = frame
+
     @abstractmethod
     def exec(self, rb: RegisterBank):
         pass
 
+    @property
+    def rd(self):
+        return self._frame["rd"]
 
-class RTypeInstruction(Instruction):
-    def __init__(self, rs1, rs2, rd):
-        self._rs1 = rs1
-        self._rs2 = rs2
-        self._rd = rd
+    @property
+    def rs1(self):
+        return self._frame["rs1"]
 
-    @classmethod
-    def from_asm(cls, op: str, args: str):
-        return cls
+    @property
+    def rs2(self):
+        return self._frame["rs2"]
+
+    @property
+    def imm(self):
+        return self._frame["imm"]
 
 
-class ITypeInstruction(Instruction):
-    def __init__(self, rs1, rd, imm):
-        self._rs1 = rs1
-        self._rd = rd
-        self._imm = imm
+class AddImmediate(Instruction[IType]):
+    def exec(self, rb: RegisterBank):
+        rb[self.rd] = se(self.imm, 12) + rb[self.rs1]
 
-    @staticmethod
-    def from_asm(op: str, args: str):
-        args_list = [a.strip() for a in args.split(",")]
-        print(args_list)
-        return 0
+
+class InvalidInstructionError(Exception):
+    pass
 
 
 OP_RE = re.compile(r"^\s*(\w+)(.*)$")
 
 
+def asm2instr(asm: tuple) -> Instruction:
+    op, args = asm
+    match op:
+        case "lui" | "addi" | "slti" | "sltiu" | "andi" | "ori" | "xori":
+            return ITypeInstruction.from_asm(op, args)
+        case _:
+            raise InvalidInstructionError
+
+
 def main() -> int:
-    instrs = []
+    asm_instrs = []
     with open("tests/add.s") as file:
         for line in file:
             if m := OP_RE.match(line):
@@ -49,19 +78,12 @@ def main() -> int:
                 args = m.group(2)
                 if (i := args.find("#")) > -1:
                     args = args[:i]
-                args = args.strip()
-                instrs.append((op, args))
+                args = [a.strip() for a in args.split(",")]
+                asm_instrs.append((op, args))
 
-    def to_instr(instr):
-        op, args = instr
-        match op:
-            case "li" | "lui" | "addi" | "slti" | "sltiu" | "andi" | "ori" | "xori":
-                return ITypeInstruction.from_asm(op, args)
-            case _:
-                return "not defined"
-
-    instrs = list(map(to_instr, instrs))
-    print(instrs)
+    instrs = map(asm2instr, asm_instrs)
+    for instr in instrs:
+        print("")
     return 0
 
 

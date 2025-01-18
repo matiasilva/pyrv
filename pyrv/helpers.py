@@ -111,3 +111,13 @@ class RegisterBank:
 
     def __getattr__(self, attr: str) -> Register:
         return self[attr]
+
+
+def se(value, old_bits):
+    """
+    Sign extend a value of size `old_bits`
+
+    Reference: Henry S. Warren, Jr., Hacker's Delight (2e), Ch. 2, Addison-Wesley, 2012
+    """
+    sign_bit = 1 << (old_bits - 1)
+    return (value ^ sign_bit) - sign_bit
