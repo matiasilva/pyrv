@@ -4,7 +4,8 @@ representations"""
 import re
 
 import pyrv.instructions as instructions
-from pyrv.instructions import Instruction
+from pyrv.instructions import OP2INSTR, Instruction
+from tests.test_instructions import ITYPE_OPS
 
 
 class InvalidInstructionError(Exception):
@@ -16,14 +17,13 @@ OP_RE = re.compile(r"^\s*(\w+)(.*)$")
 
 def asm2instr(asm: tuple) -> Instruction:
     op, args = asm
-    match op:
-        case "addi":
-            frame = instructions.IType(rd=args[0], rs1=args[1], imm=args[2])
-            return instructions.AddImmediate(frame)
-        # case "lui" | "addi" | "slti" | "sltiu" | "andi" | "ori" | "xori":
-        #     return ITypeInstruction.from_asm(op, args)
-        case _:
-            raise InvalidInstructionError
+
+    if op in ITYPE_OPS:
+        frame = instructions.IType(rd=args[0], rs1=args[1], imm=args[2])
+    else:
+        raise InvalidInstructionError
+
+    return OP2INSTR[op](frame)
 
 
 def parse_asm(line: str) -> tuple | None:

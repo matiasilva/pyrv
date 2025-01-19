@@ -18,7 +18,8 @@ official work.
 
 ## Development
 
-Dependencies are managed with [uv](https://docs.astral.sh/uv/).
+Dependencies are managed with [uv](https://docs.astral.sh/uv/). There is active
+CI infrastructure that guarantees test conformance.
 
 To run the tests:
 

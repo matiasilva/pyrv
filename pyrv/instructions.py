@@ -92,10 +92,22 @@ class ExclusiveOrImmediate(Instruction[IType]):
         rb[self.rd] = rb[self.rs1] ^ se(self.imm, 12)
 
 
+class OrImmediate(Instruction[IType]):
+    """
+    Perform a bitwise OR operation on the source register with the sign-extended
+    12-bit immediate, placing the result in the destination  register
+
+    ori rd, rs1, imm
+    """
+
+    def exec(self, rb: RegisterBank) -> None:
+        rb[self.rd] = rb[self.rs1] | se(self.imm, 12)
+
+
 class AndImmediate(Instruction[IType]):
     """
     Perform a bitwise AND operation on the source register with the sign-extended
-    12-bit immediate, placing the result in the destinatio  register
+    12-bit immediate, placing the result in the destination  register
 
     addi rd, rs1, imm
     """
@@ -256,3 +268,15 @@ class And(Instruction[RType]):
 
     def exec(self, rb: RegisterBank) -> None:
         rb[self.rd] = rb[self.rs1] & rb[self.rs2]
+
+
+OP2INSTR = {
+    "addi": AddImmediate,
+    "slti": SetOnLessThanImmediate,
+    "sltiu": SetOnLessThanImmediateU,
+    "andi": AndImmediate,
+    "ori": OrImmediate,
+    "xori": ExclusiveOrImmediate,
+}
+
+ITYPE_OPS = ("addi", "slti", "sltiu", "andi", "ori", "xori")

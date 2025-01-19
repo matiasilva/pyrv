@@ -44,11 +44,17 @@ class Register:
     def __or__(self, other: Self | int) -> int:
         return self.read() | self._int_or_reg(other)
 
-    def __gt__(self, other: Self | int) -> int:
+    def __gt__(self, other: Self | int) -> bool:
         return self.read() > self._int_or_reg(other)
 
-    def __lt__(self, other: Self | int) -> int:
+    def __lt__(self, other: Self | int) -> bool:
         return self.read() < self._int_or_reg(other)
+
+    def __eq__(self, other) -> bool:
+        return self.read() == self._int_or_reg(other)
+
+    def __ne__(self, other) -> bool:
+        return self.read() != self._int_or_reg(other)
 
     def __iadd__(self, other: Self | int) -> Self:
         self.write(self + other)
