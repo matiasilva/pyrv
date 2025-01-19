@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TypedDict, TypeVar
 
-from helpers import RegisterBank, as_signed, se
+from pyrv.helpers import RegisterBank, as_signed, se
 
 T = TypeVar("T", bound=Mapping)
 

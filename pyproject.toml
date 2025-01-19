@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "RV32I instruction set simulator"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pytest>=8.3.4",
+]
 
 [tool.ruff.lint]
 select = [

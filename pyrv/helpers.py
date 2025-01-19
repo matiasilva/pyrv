@@ -1,15 +1,12 @@
-import re
 from typing import Self
-
-import instructions
-from instructions import Instruction
 
 
 class Register:
-    def __init__(self) -> None:
-        self._value = 0
-        self.WIDTH = 32
-        self.MASK = (1 << self.WIDTH) - 1
+    WIDTH = 32
+    MASK = (1 << WIDTH) - 1
+
+    def __init__(self, value: int = 0) -> None:
+        self._value = value
 
     def _masked(self, value: int) -> int:
         return value & self.MASK
@@ -26,16 +23,16 @@ class Register:
 
     # use a decorator here?
     def __add__(self, other: Self | int) -> int:
-        return self.read() + self._int_or_reg(other)
+        return self._masked(self.read() + self._int_or_reg(other))
 
     def __sub__(self, other: Self | int) -> int:
-        return self.read() - self._int_or_reg(other)
+        return self._masked(self.read() - self._int_or_reg(other))
 
     def __lshift__(self, other: Self | int) -> int:
-        return self.read() << self._int_or_reg(other)
+        return self._masked(self.read() << self._int_or_reg(other))
 
     def __rshift__(self, other: Self | int) -> int:
-        return self.read() >> self._int_or_reg(other)
+        return self._masked(self.read() >> self._int_or_reg(other))
 
     def __xor__(self, other: Self | int) -> int:
         return self.read() ^ self._int_or_reg(other)
@@ -65,8 +62,8 @@ class Register:
 
 
 class MutableRegister(Register):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, value: int = 0) -> None:
+        super().__init__(value)
 
     def _masked(self, value: int) -> int:
         return value & self.MASK
@@ -153,39 +150,8 @@ def se(value: int, old_bits: int) -> int:
 
 def as_signed(value: int, bits: int = 32) -> int:
     """
-    Intepret an unsigned binary value of size `bits` as a signed Python integer constrained to size `bits`
+    Intepret an unsigned binary value of size `bits` as a signed Python integer
     """
     mask = (1 << bits) - 1
     sign_bit = 1 << bits - 1
-    return (value ^ sign_bit + -1 * (value & sign_bit)) & mask
-
-
-class InvalidInstructionError(Exception):
-    pass
-
-
-OP_RE = re.compile(r"^\s*(\w+)(.*)$")
-
-
-def asm2instr(asm: tuple) -> Instruction:
-    op, args = asm
-    match op:
-        case "addi":
-            frame = instructions.IType(rd=args[0], rs1=args[1], imm=args[2])
-            return instructions.AddImmediate(frame)
-        # case "lui" | "addi" | "slti" | "sltiu" | "andi" | "ori" | "xori":
-        #     return ITypeInstruction.from_asm(op, args)
-        case _:
-            raise InvalidInstructionError
-
-
-def parse_asm(line: str) -> tuple | None:
-    if m := OP_RE.match(line):
-        op = m.group(1)
-        args = m.group(2)
-        if (i := args.find("#")) > -1:
-            args = args[:i]
-        args = [a.strip() for a in args.split(",")]
-        return (op, args)
-    else:
-        return None
+    return -((~value + 1) & mask) if value & sign_bit else value & mask

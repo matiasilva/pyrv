@@ -28,3 +28,4 @@ Matias Wang Silva, 2025
 ## TODO
 
 <https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof>
+use numpy types

@@ -1,4 +1,5 @@
-from helpers import MutableRegister, RegisterBank, asm2instr, parse_asm
+from pyrv.adapters import asm2instr, parse_asm
+from pyrv.helpers import MutableRegister, RegisterBank
 
 x = RegisterBank()
 pc = MutableRegister()
