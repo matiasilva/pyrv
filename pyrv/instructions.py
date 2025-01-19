@@ -65,6 +65,11 @@ class SetOnLessThanImmediate(Instruction[IType]):
     """
 
     def exec(self, rb: RegisterBank) -> None:
+        print(
+            as_signed(rb[self.rs1].read()),
+            as_signed(se(self.imm, 12)),
+            rb[self.rs1].read(),
+        )
         rb[self.rd] = int(as_signed(rb[self.rs1].read()) < as_signed(se(self.imm, 12)))
 
 

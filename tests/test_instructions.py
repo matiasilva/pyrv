@@ -9,6 +9,7 @@ from pyrv.instructions import ITYPE_OPS, OP2INSTR, IType, Instruction, RType
 
 WIDTH = Register.WIDTH
 IMM_MASK = (1 << 12) - 1
+REG_MASK = Register.MASK
 
 
 @pytest.fixture
@@ -83,17 +84,17 @@ testcases = {
         TestCaseIType(
             "slti_true_nn",
             {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
-            initial_rs1=(-18 & IMM_MASK),
+            initial_rs1=(-48 & REG_MASK),
             expected_rd=1,
         ),
         TestCaseIType(
             "slti_false_nn",
             {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
-            initial_rs1=(-2 & IMM_MASK),
-            expected_rd=1,
+            initial_rs1=(-2 & REG_MASK),
+            expected_rd=0,
         ),
         TestCaseIType(
-            "slti_false", {"rd": 1, "rs1": 2, "imm": 12}, initial_rs1=10, expected_rd=0
+            "slti_false", {"rd": 1, "rs1": 2, "imm": 10}, initial_rs1=12, expected_rd=0
         ),
         TestCaseIType(
             "slti_equal_p", {"rd": 1, "rs1": 2, "imm": 5}, initial_rs1=5, expected_rd=0
@@ -101,19 +102,22 @@ testcases = {
         TestCaseIType(
             "slti_equal_n",
             {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
-            initial_rs1=(-8 & IMM_MASK),
+            initial_rs1=(-8 & REG_MASK),
             expected_rd=0,
         ),
     ],
     "sltiu": [
         TestCaseIType(
-            "sltiu_true", {"rd": 1, "rs1": 2, "imm": 4}, initial_rs1=5, expected_rd=1
+            "sltiu_true", {"rd": 1, "rs1": 2, "imm": 4}, initial_rs1=5, expected_rd=0
         ),
         TestCaseIType(
-            "sltiu_false", {"rd": 1, "rs1": 2, "imm": 12}, initial_rs1=10, expected_rd=0
+            "sltiu_false", {"rd": 1, "rs1": 2, "imm": 12}, initial_rs1=10, expected_rd=1
         ),
         TestCaseIType(
             "sltiu_equal", {"rd": 1, "rs1": 2, "imm": 5}, initial_rs1=5, expected_rd=0
+        ),
+        TestCaseIType(
+            "sltiu_snez", {"rd": 1, "rs1": 0, "imm": 0}, initial_rs1=1, expected_rd=0
         ),
     ],
     "andi": [],
