@@ -26,8 +26,7 @@ def test_basic():
 
 def test_immutable_register():
     r = Register(3)
-    with pytest.raises(TypeError):
-        r.write(3)
+    r.write(3)
     assert r.read() == 3
 
 

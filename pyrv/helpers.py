@@ -19,7 +19,8 @@ class Register:
         return self._value
 
     def write(self, value: int) -> None:
-        raise TypeError("Register type is not mutable")
+        # RISC-V allows writes so long as they don't take effect
+        pass
 
     # use a decorator here?
     def __add__(self, other: Self | int) -> int:
@@ -115,7 +116,6 @@ class RegisterBank:
         self._aliases |= {f"x{i}": i for i in range(32)}  # add x0, x1, ... aliases
 
     def __getitem__(self, key: int | str) -> Register:
-        print("hi")
         match key:
             case int():
                 idx = key
@@ -126,7 +126,6 @@ class RegisterBank:
         return self._items[idx]
 
     def __setitem__(self, key: int | str, value: int | Register) -> None:
-        print(key, value)
         r = self[key]
         i_val = value if isinstance(value, int) else value.read()
         r.write(i_val)
