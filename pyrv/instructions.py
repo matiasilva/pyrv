@@ -282,6 +282,9 @@ OP2INSTR = {
     "andi": AndImmediate,
     "ori": OrImmediate,
     "xori": ExclusiveOrImmediate,
+    "slli": ShiftLeftLogicalImmediate,
+    "srli": ShiftRightLogicalImmediate,
+    "srai": ShiftRightArithemeticImmediate,
 }
 
-ITYPE_OPS = ("addi", "slti", "sltiu", "andi", "ori", "xori")
+ITYPE_OPS = OP2INSTR.keys()
