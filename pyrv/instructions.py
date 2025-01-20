@@ -65,11 +65,6 @@ class SetOnLessThanImmediate(Instruction[IType]):
     """
 
     def exec(self, rb: RegisterBank) -> None:
-        print(
-            as_signed(rb[self.rs1].read()),
-            as_signed(se(self.imm, 12)),
-            rb[self.rs1].read(),
-        )
         rb[self.rd] = int(as_signed(rb[self.rs1].read()) < as_signed(se(self.imm, 12)))
 
 
@@ -200,7 +195,9 @@ class SetOnLessThan(Instruction[RType]):
     """
 
     def exec(self, rb: RegisterBank) -> None:
-        rb[self.rd] = int(as_signed(self.rs1) < as_signed(self.rs2))
+        rb[self.rd] = int(
+            as_signed(rb[self.rs1].read()) < as_signed(rb[self.rs2].read())
+        )
 
 
 class SetOnLessThanU(Instruction[RType]):
@@ -212,7 +209,7 @@ class SetOnLessThanU(Instruction[RType]):
     """
 
     def exec(self, rb: RegisterBank) -> None:
-        rb[self.rd] = int(self.rs1 < self.rs2)
+        rb[self.rd] = int(rb[self.rs1] < rb[self.rs2])
 
 
 class ExclusiveOr(Instruction[RType]):
@@ -285,6 +282,17 @@ OP2INSTR = {
     "slli": ShiftLeftLogicalImmediate,
     "srli": ShiftRightLogicalImmediate,
     "srai": ShiftRightArithemeticImmediate,
+    "add": Add,
+    "sub": Sub,
+    "slt": SetOnLessThan,
+    "sltu": SetOnLessThanU,
+    "and": And,
+    "or": Or,
+    "xor": ExclusiveOr,
+    "sll": ShiftLeftLogical,
+    "srl": ShiftRightLogical,
+    "sra": ShiftRightArithemetic,
 }
 
-ITYPE_OPS = OP2INSTR.keys()
+ITYPE_OPS = ("addi", "slti", "sltiu", "andi", "ori", "xori", "slli", "srli", "srai")
+RTYPE_OPS = ("add", "sub", "slt", "sltu", "and", "or", "xor", "sll", "srl", "sra")

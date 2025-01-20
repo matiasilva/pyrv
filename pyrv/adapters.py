@@ -4,8 +4,7 @@ representations"""
 import re
 
 import pyrv.instructions as instructions
-from pyrv.instructions import OP2INSTR, Instruction
-from tests.test_instructions import ITYPE_OPS
+from pyrv.instructions import ITYPE_OPS, OP2INSTR, RTYPE_OPS, Instruction
 
 
 class InvalidInstructionError(Exception):
@@ -20,6 +19,8 @@ def asm2instr(asm: tuple) -> Instruction:
 
     if op in ITYPE_OPS:
         frame = instructions.IType(rd=args[0], rs1=args[1], imm=args[2])
+    elif op in RTYPE_OPS:
+        frame = instructions.RType(rd=args[0], rs1=args[1], rs2=args[2])
     else:
         raise InvalidInstructionError
 
