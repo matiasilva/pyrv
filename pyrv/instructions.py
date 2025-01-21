@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TypedDict, TypeVar
 
-from pyrv.helpers import HartState, Register, as_signed, se
+from pyrv.helpers import Hart, se
 
 T = TypeVar("T", bound=Mapping)
 
@@ -46,7 +46,7 @@ class Instruction[T](ABC):
         self._frame = frame
 
     @abstractmethod
-    def exec(self, hart_state: HartState):
+    def exec(self, hart: Hart):
         pass
 
     @property
@@ -80,9 +80,9 @@ class JumpAndLink(Instruction[JType]):
     jal rd, imm
     """
 
-    def exec(self, hart_state: HartState):
-        hart_state.rf[self.rd] = hart_state.pc + 4
-        hart_state.pc += se(self.imm << 1, 20 + 1)
+    def exec(self, hart: Hart):
+        hart.rf[self.rd] = hart.pc + 4
+        hart.pc += se(self.imm << 1, 20 + 1)
 
 
 class JumpAndLinkRegister(Instruction[IType]):
@@ -94,10 +94,10 @@ class JumpAndLinkRegister(Instruction[IType]):
     jalr rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState):
-        hart_state.rf[self.rd] = hart_state.pc + 4
-        val = hart_state.rf[self.rs1] + se(self.imm << 1, 12 + 1)
-        hart_state.pc.write(val & 0xFFFF_FFFE)
+    def exec(self, hart: Hart):
+        hart.rf[self.rd] = hart.pc + 4
+        val = hart.rf[self.rs1] + se(self.imm << 1, 12 + 1)
+        hart.pc.write(val & 0xFFFF_FFFE)
 
 
 class BranchEqual(Instruction[BType]):
@@ -109,9 +109,9 @@ class BranchEqual(Instruction[BType]):
     beq rs1, rs2, imm
     """
 
-    def exec(self, hart_state: HartState):
-        if hart_state.rf[self.rs1] == hart_state.rf[self.rs2]:
-            hart_state.pc += se(self.imm << 1, 12 + 1)
+    def exec(self, hart: Hart):
+        if hart.rf[self.rs1] == hart.rf[self.rs2]:
+            hart.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchNotEqual(Instruction[BType]):
@@ -124,9 +124,9 @@ class BranchNotEqual(Instruction[BType]):
     bne rs1, rs2, imm
     """
 
-    def exec(self, hart_state: HartState):
-        if hart_state.rf[self.rs1] != hart_state.rf[self.rs2]:
-            hart_state.pc += se(self.imm << 1, 12 + 1)
+    def exec(self, hart: Hart):
+        if hart.rf[self.rs1] != hart.rf[self.rs2]:
+            hart.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnLessThan(Instruction[BType]):
@@ -137,11 +137,11 @@ class BranchOnLessThan(Instruction[BType]):
     blt rs1, rs2, imm
     """
 
-    def exec(self, hart_state: HartState):
-        a = se(hart_state.rf[self.rs1].read())
-        b = se(hart_state.rf[self.rs2].read())
+    def exec(self, hart: Hart):
+        a = se(hart.rf[self.rs1].read())
+        b = se(hart.rf[self.rs2].read())
         if a < b:
-            hart_state.pc += se(self.imm << 1, 12 + 1)
+            hart.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnLessThanU(Instruction[BType]):
@@ -152,9 +152,9 @@ class BranchOnLessThanU(Instruction[BType]):
     bltu rs1, rs2, imm
     """
 
-    def exec(self, hart_state: HartState):
-        if hart_state.rf[self.rs1] < hart_state.rf[self.rs2]:
-            hart_state.pc += se(self.imm << 1, 12 + 1)
+    def exec(self, hart: Hart):
+        if hart.rf[self.rs1] < hart.rf[self.rs2]:
+            hart.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnGreaterThanEqual(Instruction[BType]):
@@ -165,11 +165,11 @@ class BranchOnGreaterThanEqual(Instruction[BType]):
     bge rs1, rs2, imm
     """
 
-    def exec(self, hart_state: HartState):
-        a = se(hart_state.rf[self.rs1].read())
-        b = se(hart_state.rf[self.rs2].read())
+    def exec(self, hart: Hart):
+        a = se(hart.rf[self.rs1].read())
+        b = se(hart.rf[self.rs2].read())
         if a >= b:
-            hart_state.pc += se(self.imm << 1, 12 + 1)
+            hart.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnGreaterThanEqualU(Instruction[BType]):
@@ -180,9 +180,9 @@ class BranchOnGreaterThanEqualU(Instruction[BType]):
     bgeu rs1, rs2, imm
     """
 
-    def exec(self, hart_state: HartState):
-        if hart_state.rf[self.rs1] >= hart_state.rf[self.rs2]:
-            hart_state.pc += se(self.imm << 1, 12 + 1)
+    def exec(self, hart: Hart):
+        if hart.rf[self.rs1] >= hart.rf[self.rs2]:
+            hart.pc += se(self.imm << 1, 12 + 1)
 
 
 # --- Integer-Register immediate operations ---
@@ -196,8 +196,8 @@ class AddImmediate(Instruction[IType]):
     addi rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] + se(self.imm, 12)
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] + se(self.imm, 12)
 
 
 class SetOnLessThanImmediate(Instruction[IType]):
@@ -208,10 +208,8 @@ class SetOnLessThanImmediate(Instruction[IType]):
     slti rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = int(
-            se(hart_state.rf[self.rs1].read()) < se(self.imm, 12)
-        )
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = int(se(hart.rf[self.rs1].read()) < se(self.imm, 12))
 
 
 class SetOnLessThanImmediateU(Instruction[IType]):
@@ -222,8 +220,8 @@ class SetOnLessThanImmediateU(Instruction[IType]):
     sltiu rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = int(hart_state.rf[self.rs1] < se(self.imm, 12))
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = int(hart.rf[self.rs1] < se(self.imm, 12))
 
 
 class ExclusiveOrImmediate(Instruction[IType]):
@@ -234,8 +232,8 @@ class ExclusiveOrImmediate(Instruction[IType]):
     xori rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] ^ se(self.imm, 12)
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] ^ se(self.imm, 12)
 
 
 class OrImmediate(Instruction[IType]):
@@ -246,8 +244,8 @@ class OrImmediate(Instruction[IType]):
     ori rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] | se(self.imm, 12)
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] | se(self.imm, 12)
 
 
 class AndImmediate(Instruction[IType]):
@@ -258,8 +256,8 @@ class AndImmediate(Instruction[IType]):
     addi rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] & se(self.imm, 12)
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] & se(self.imm, 12)
 
 
 class ShiftLeftLogicalImmediate(Instruction[IType]):
@@ -270,8 +268,8 @@ class ShiftLeftLogicalImmediate(Instruction[IType]):
     slli rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] << self.imm
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] << self.imm
 
 
 class ShiftRightLogicalImmediate(Instruction[IType]):
@@ -282,8 +280,8 @@ class ShiftRightLogicalImmediate(Instruction[IType]):
     srli rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] >> self.imm
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] >> self.imm
 
 
 class ShiftRightArithemeticImmediate(Instruction[IType]):
@@ -294,8 +292,8 @@ class ShiftRightArithemeticImmediate(Instruction[IType]):
     srai rd, rs1, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = se(hart_state.rf[self.rs1].read()) >> self.imm
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = se(hart.rf[self.rs1].read()) >> self.imm
 
 
 class LoadUpperImmediate(Instruction[UType]):
@@ -305,8 +303,8 @@ class LoadUpperImmediate(Instruction[UType]):
     lui rd, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = self.imm << 20
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = self.imm << 20
 
 
 class AddUpperImmediateToPc(Instruction[UType]):
@@ -317,8 +315,8 @@ class AddUpperImmediateToPc(Instruction[UType]):
     auipc rd, imm
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.pc + self.imm << 20
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.pc + self.imm << 20
 
 
 # --- Integer Register-Register operations ----
@@ -331,8 +329,8 @@ class Add(Instruction[RType]):
     add rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] + hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] + hart.rf[self.rs2]
 
 
 class Sub(Instruction[RType]):
@@ -342,8 +340,8 @@ class Sub(Instruction[RType]):
     sub rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] - hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] - hart.rf[self.rs2]
 
 
 class ShiftLeftLogical(Instruction[RType]):
@@ -354,8 +352,8 @@ class ShiftLeftLogical(Instruction[RType]):
     sll rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] << hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] << hart.rf[self.rs2]
 
 
 class SetOnLessThan(Instruction[RType]):
@@ -366,9 +364,9 @@ class SetOnLessThan(Instruction[RType]):
     slt rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = int(
-            se(hart_state.rf[self.rs1].read()) < se(hart_state.rf[self.rs2].read())
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = int(
+            se(hart.rf[self.rs1].read()) < se(hart.rf[self.rs2].read())
         )
 
 
@@ -380,8 +378,8 @@ class SetOnLessThanU(Instruction[RType]):
     sltu rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = int(hart_state.rf[self.rs1] < hart_state.rf[self.rs2])
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = int(hart.rf[self.rs1] < hart.rf[self.rs2])
 
 
 class ExclusiveOr(Instruction[RType]):
@@ -392,8 +390,8 @@ class ExclusiveOr(Instruction[RType]):
     xor rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] ^ hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] ^ hart.rf[self.rs2]
 
 
 class ShiftRightLogical(Instruction[RType]):
@@ -404,8 +402,8 @@ class ShiftRightLogical(Instruction[RType]):
     srl rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] >> hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] >> hart.rf[self.rs2]
 
 
 class ShiftRightArithemetic(Instruction[RType]):
@@ -416,12 +414,8 @@ class ShiftRightArithemetic(Instruction[RType]):
     sra rd, rs1, rs2
     """
 
-    def exec(
-        self, hart_state: HartState
-    ) -> None:  # cheeky, width of Python int >>>> 32
-        hart_state.rf[self.rd] = (
-            se(hart_state.rf[self.rs1].read()) >> hart_state.rf[self.rs2].read()
-        )
+    def exec(self, hart: Hart) -> None:  # cheeky, width of Python int >>>> 32
+        hart.rf[self.rd] = se(hart.rf[self.rs1].read()) >> hart.rf[self.rs2].read()
 
 
 class Or(Instruction[RType]):
@@ -432,8 +426,8 @@ class Or(Instruction[RType]):
     or rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] | hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] | hart.rf[self.rs2]
 
 
 class And(Instruction[RType]):
@@ -444,8 +438,8 @@ class And(Instruction[RType]):
     and rd, rs1, rs2
     """
 
-    def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = hart_state.rf[self.rs1] & hart_state.rf[self.rs2]
+    def exec(self, hart: Hart) -> None:
+        hart.rf[self.rd] = hart.rf[self.rs1] & hart.rf[self.rs2]
 
 
 OP2INSTR = {

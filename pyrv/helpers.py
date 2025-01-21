@@ -1,5 +1,3 @@
-from dataclasses import dataclass, field
-from re import L
 from typing import Self
 
 import numpy
@@ -152,27 +150,12 @@ class RegisterFile:
 
 def se(value: int, bits: int = 32) -> int:
     """
-    Sign extend a value of size `old_bits`
+    Sign extend a binary integer of size `bits`
 
     Reference: Henry S. Warren, Jr., Hacker's Delight (2e), Ch. 2, Addison-Wesley, 2012
     """
     sign_bit = 1 << bits - 1
     return (value ^ sign_bit) - sign_bit
-
-
-def as_signed(value: int, bits: int = 32) -> int:
-    """
-    Intepret an unsigned binary value of size `bits` as a signed Python integer
-    """
-    mask = (1 << bits) - 1
-    sign_bit = 1 << bits - 1
-    return -((~value + 1) & mask) if value & sign_bit else value & mask
-
-
-@dataclass
-class HartState:
-    pc: MutableRegister = field(default_factory=MutableRegister)
-    rf: RegisterFile = field(default_factory=RegisterFile)
 
 
 class AddressMisalignedException(Exception):
@@ -183,12 +166,56 @@ class AccessFaultException(Exception):
     pass
 
 
-class SystemAddressMap:
+KIB = 1024
+MIB = 1024 * KIB
+
+
+class SystemBus:
+    """
+    Dispatches load/store instructions
+
+    A load/store instruction moves data to/from registers and
+    ports (memory + peripherals) on the system address map
+    """
+
     def __init__(self):
         pass
 
+    def _check_addr(self, addr: int, n: int):
+        if (n & (n - 1) != 0) or n == 0:
+            raise AddressMisalignedException
+        if addr % n != 0:
+            raise AddressMisalignedException
 
-class Memory:
+    def write(self, addr: int, n: int):
+        if 0 <= addr < 0x0010_0000:
+            return 3
+        elif 0x0010_0000 <= addr < 0x0050_0000:
+            return 4
+        else:
+            raise AccessFaultException
+
+
+class InstructionMemory:
+    def __init__(self):
+        self.SIZE = 1 * 1024
+        """The size of the memory in kiB"""
+        self._contents = numpy.zeros(self.SIZE * 1024, numpy.uint8)
+
+    def _check_addr(self, addr: int, n: int) -> None:
+        if addr > self._contents.size:
+            raise AccessFaultException
+        # further require word alignment
+        if addr % 4 != 0:
+            raise AddressMisalignedException
+
+    def read(self, addr: int, n: int) -> tuple:
+        """Read `n` words from the memory starting at address `addr`"""
+        self._check_addr(addr, n)
+        return self._contents[addr : addr + n]
+
+
+class DataMemory:
     def __init__(self):
         self.SIZE = 4 * 1024
         """The size of the memory in kiB"""
@@ -197,10 +224,6 @@ class Memory:
     def _check_addr(self, addr: int, n: int) -> None:
         if addr > self._contents.size:
             raise AccessFaultException
-        if (n & (n - 1) != 0) or n == 0:
-            raise AddressMisalignedException
-        if addr % n != 0:
-            raise AddressMisalignedException
 
     def write(self, addr: int, data: tuple) -> None:
         """Write `data` to the memory starting at address `addr`"""
@@ -212,3 +235,21 @@ class Memory:
         """Read `n` bytes from the memory starting at address `addr`"""
         self._check_addr(addr, n)
         return self._contents[addr : addr + n]
+
+
+class Hart:
+    """Barebones hart used for tests where a full hart is deliberately omitted"""
+
+    def __init__(self):
+        self.pc = MutableRegister()
+        self.register_file = RegisterFile()
+        self.rf = self.register_file  # alias
+
+
+class BasicHart(Hart):
+    def __init__(self):
+        self.data_memory = DataMemory()
+        self.system_bus = SystemBus()
+
+    def step(self):
+        """Step the simulator forward by one iteration"""

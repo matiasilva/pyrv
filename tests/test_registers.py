@@ -69,8 +69,8 @@ def test_masked_register(max_reg):
         (0xFF, 8, -1),  # All bits set for 8 bits
     ],
 )
-def test_as_signed(value: int, bits: int, expected: int):
-    assert pyrv.helpers.as_signed(value, bits) == expected
+def test_sign_extend(value: int, bits: int, expected: int):
+    assert pyrv.helpers.se(value, bits) == expected
 
 
 def test_arithmetic_operations(reg: MutableRegister):
