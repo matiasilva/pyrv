@@ -211,4 +211,8 @@ ITYPE_TESTCASES = {
             expected_rd=0xFF000000,
         ),
     ],
+    "lw": [],
+    "lh": [],
+    "lb": [],
+    "jalr": [],
 }
