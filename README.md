@@ -2,17 +2,18 @@
 
 `pyrv` is an instruction set simulator (ISS) for the RISC-V ISA.
 
-An ISS provides a non-cycle accurate functional model of a particular RISC-V ISA
-version. There is an
-[official simulator](https://github.com/riscv-software-src/riscv-isa-sim) from
-RISC-V International, which is much more feature-rich and should be used for any
-official work.
+An ISS provides a non-cycle accurate functional model of a CPU core. `pyrv`
+models RISC-V harts, meeting particular RISC-V ISA versions. There is an
+[official simulator](https://github.com/riscv-software-src/riscv-isa-sim) called
+Spike from RISC-V International, which is much more feature-rich and should be
+used for any official work.
 
 ## Features
 
 - RV32I Base Integer ISA support, v2.1
 - `.elf` and assembly support
 - flexible types make future ISA support easy
+- little endian
 
 ## Getting started
 
@@ -35,9 +36,9 @@ ruff --check pyrv
 
 ## Motivation
 
-This is a hobby project aimed at learning more about the ISA and its design
-decisions, which will in turn influence my work on my
-[RV32I softcore implementation](https://github.com/matiasilva/riscv-soc). It
+This is a hobby project I chipped away at in my free time aimed at learning more
+about the ISA and its design decisions, which will in turn influence my work on
+my [RV32I softcore implementation](https://github.com/matiasilva/riscv-soc). It
 also provides a reference model for running RV binaries.
 
 ## License
