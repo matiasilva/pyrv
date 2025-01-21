@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Self
 
 
@@ -20,7 +21,7 @@ class Register:
 
     def write(self, value: int) -> None:
         # RISC-V allows writes so long as they don't take effect
-        pass
+        value = value  # do something silly like this so PyRight is happy
 
     # use a decorator here?
     def __add__(self, other: Self | int) -> int:
@@ -80,7 +81,7 @@ class MutableRegister(Register):
 
 
 # TODO: consider subclassing Sequence, Mapping (tried but was a mypy PITA)
-class RegisterBank:
+class RegisterFile:
     def __init__(self) -> None:
         self._items: tuple = (Register(),) + tuple(MutableRegister() for _ in range(31))
 
@@ -160,3 +161,9 @@ def as_signed(value: int, bits: int = 32) -> int:
     mask = (1 << bits) - 1
     sign_bit = 1 << bits - 1
     return -((~value + 1) & mask) if value & sign_bit else value & mask
+
+
+@dataclass
+class HartState:
+    pc: MutableRegister = field(default_factory=MutableRegister)
+    rf: RegisterFile = field(default_factory=RegisterFile)

@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 
-from pyrv.helpers import Register
 from pyrv.instructions import IType
 
 IMM_MASK = (1 << 12) - 1
-REG_MASK = Register.MASK
 
 
 @dataclass
@@ -48,13 +46,13 @@ ITYPE_TESTCASES = {
         TestCaseIType(
             "slti_true_nn",
             {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
-            initial_rs1=(-48 & REG_MASK),
+            initial_rs1=-48,
             expected_rd=1,
         ),
         TestCaseIType(
             "slti_true_np",
             {"rd": 1, "rs1": 2, "imm": 28},
-            initial_rs1=(-48 & REG_MASK),
+            initial_rs1=-48,
             expected_rd=1,
         ),
         TestCaseIType(
@@ -66,7 +64,7 @@ ITYPE_TESTCASES = {
         TestCaseIType(
             "slti_false_nn",
             {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
-            initial_rs1=(-2 & REG_MASK),
+            initial_rs1=-2,
             expected_rd=0,
         ),
         TestCaseIType(
@@ -78,7 +76,7 @@ ITYPE_TESTCASES = {
         TestCaseIType(
             "slti_equal_n",
             {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
-            initial_rs1=(-8 & REG_MASK),
+            initial_rs1=-8,
             expected_rd=0,
         ),
     ],

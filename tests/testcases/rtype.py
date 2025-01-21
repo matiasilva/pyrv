@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from pyrv.helpers import Register
 from pyrv.instructions import RType
 
 

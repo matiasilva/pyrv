@@ -1,8 +1,7 @@
 from pyrv.adapters import asm2instr, parse_asm
-from pyrv.helpers import MutableRegister, RegisterBank
+from pyrv.helpers import HartState
 
-x = RegisterBank()
-pc = MutableRegister()
+hart_state = HartState()
 
 
 def main() -> int:
