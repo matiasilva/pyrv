@@ -75,12 +75,14 @@ class JumpAndLink(Instruction[JType]):
     20-bit immediate offset to this instruction's address.
     Store the address of the next instruction in rd.
 
+    Note: the immediate encodes 2 bytes (half words)
+
     jal rd, imm
     """
 
     def exec(self, hart_state: HartState):
         hart_state.rf[self.rd] = hart_state.pc + 4
-        hart_state.pc += se(self.imm, 20) << 1
+        hart_state.pc += se(self.imm << 1, 20 + 1)
 
 
 class JumpAndLinkRegister(Instruction[IType]):
@@ -94,8 +96,53 @@ class JumpAndLinkRegister(Instruction[IType]):
 
     def exec(self, hart_state: HartState):
         hart_state.rf[self.rd] = hart_state.pc + 4
-        val = hart_state.rf[self.rs1] + se(self.imm, 12)
+        val = hart_state.rf[self.rs1] + se(self.imm << 1, 12 + 1)
         hart_state.pc.write(val & 0xFFFF_FFFE)
+
+
+class BranchEqual(Instruction[BType]):
+    """
+    Add the sign-extended 12-bit immediate offset to the pc value if rs1 equals rs2.
+
+    Note: the immediate encodes 2 bytes (half words)
+
+    beq rs1, rs2, imm
+    """
+
+    def exec(self, hart_state: HartState):
+        if hart_state.rf[self.rs1] == hart_state.rf[self.rs2]:
+            hart_state.pc += se(self.imm << 1, 12 + 1)
+
+
+class BranchNotEqual(Instruction[BType]):
+    """
+    Add the sign-extended 12-bit immediate offset to the pc value if rs1 is not equal to
+    rs2.
+
+    Note: the immediate encodes 2 bytes (half words)
+
+    bne rs1, rs2, imm
+    """
+
+    def exec(self, hart_state: HartState):
+        if hart_state.rf[self.rs1] != hart_state.rf[self.rs2]:
+            hart_state.pc += se(self.imm << 1, 12 + 1)
+
+
+class BranchOnLessThan(Instruction[BType]):
+    pass
+
+
+class BranchOnLessThanU(Instruction[BType]):
+    pass
+
+
+class BranchOnGreaterThanEqual(Instruction[BType]):
+    pass
+
+
+class BranchOnGreaterThanEqualU(Instruction[BType]):
+    pass
 
 
 # --- Integer-Register immediate operations ---
