@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
+from re import L
 from typing import Self
+
+import numpy
 
 
 class Register:
@@ -47,6 +50,9 @@ class Register:
 
     def __gt__(self, other: Self | int) -> bool:
         return self.read() > self._int_or_reg(other)
+
+    def __ge__(self, other: Self | int) -> bool:
+        return self.read() >= self._int_or_reg(other)
 
     def __lt__(self, other: Self | int) -> bool:
         return self.read() < self._int_or_reg(other)
@@ -144,13 +150,13 @@ class RegisterFile:
         return self[attr]
 
 
-def se(value: int, old_bits: int) -> int:
+def se(value: int, bits: int = 32) -> int:
     """
     Sign extend a value of size `old_bits`
 
     Reference: Henry S. Warren, Jr., Hacker's Delight (2e), Ch. 2, Addison-Wesley, 2012
     """
-    sign_bit = 1 << old_bits - 1
+    sign_bit = 1 << bits - 1
     return (value ^ sign_bit) - sign_bit
 
 
@@ -167,3 +173,42 @@ def as_signed(value: int, bits: int = 32) -> int:
 class HartState:
     pc: MutableRegister = field(default_factory=MutableRegister)
     rf: RegisterFile = field(default_factory=RegisterFile)
+
+
+class AddressMisalignedException(Exception):
+    pass
+
+
+class AccessFaultException(Exception):
+    pass
+
+
+class SystemAddressMap:
+    def __init__(self):
+        pass
+
+
+class Memory:
+    def __init__(self):
+        self.SIZE = 4 * 1024
+        """The size of the memory in kiB"""
+        self._contents = numpy.zeros(self.SIZE * 1024, numpy.uint8)
+
+    def _check_addr(self, addr: int, n: int) -> None:
+        if addr > self._contents.size:
+            raise AccessFaultException
+        if (n & (n - 1) != 0) or n == 0:
+            raise AddressMisalignedException
+        if addr % n != 0:
+            raise AddressMisalignedException
+
+    def write(self, addr: int, data: tuple) -> None:
+        """Write `data` to the memory starting at address `addr`"""
+        n = len(data)
+        self._check_addr(addr, n)
+        self._contents[addr : addr + n] = data
+
+    def read(self, addr: int, n: int) -> tuple:
+        """Read `n` bytes from the memory starting at address `addr`"""
+        self._check_addr(addr, n)
+        return self._contents[addr : addr + n]

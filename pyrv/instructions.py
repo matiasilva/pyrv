@@ -130,19 +130,59 @@ class BranchNotEqual(Instruction[BType]):
 
 
 class BranchOnLessThan(Instruction[BType]):
-    pass
+    """
+    Add the sign-extended 12-bit immediate offset to the pc value if rs1 is less than
+    rs2 (signed).
+
+    blt rs1, rs2, imm
+    """
+
+    def exec(self, hart_state: HartState):
+        a = se(hart_state.rf[self.rs1].read())
+        b = se(hart_state.rf[self.rs2].read())
+        if a < b:
+            hart_state.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnLessThanU(Instruction[BType]):
-    pass
+    """
+    Add the sign-extended 12-bit immediate offset to the pc value if rs1 is less than
+    rs2.
+
+    bltu rs1, rs2, imm
+    """
+
+    def exec(self, hart_state: HartState):
+        if hart_state.rf[self.rs1] < hart_state.rf[self.rs2]:
+            hart_state.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnGreaterThanEqual(Instruction[BType]):
-    pass
+    """
+    Add the sign-extended 12-bit immediate offset to the pc value if rs1 is >=
+    rs2 (signed).
+
+    bge rs1, rs2, imm
+    """
+
+    def exec(self, hart_state: HartState):
+        a = se(hart_state.rf[self.rs1].read())
+        b = se(hart_state.rf[self.rs2].read())
+        if a >= b:
+            hart_state.pc += se(self.imm << 1, 12 + 1)
 
 
 class BranchOnGreaterThanEqualU(Instruction[BType]):
-    pass
+    """
+    Add the sign-extended 12-bit immediate offset to the pc value if rs1 is >=
+    rs2.
+
+    bgeu rs1, rs2, imm
+    """
+
+    def exec(self, hart_state: HartState):
+        if hart_state.rf[self.rs1] >= hart_state.rf[self.rs2]:
+            hart_state.pc += se(self.imm << 1, 12 + 1)
 
 
 # --- Integer-Register immediate operations ---
@@ -170,7 +210,7 @@ class SetOnLessThanImmediate(Instruction[IType]):
 
     def exec(self, hart_state: HartState) -> None:
         hart_state.rf[self.rd] = int(
-            as_signed(hart_state.rf[self.rs1].read()) < as_signed(se(self.imm, 12))
+            se(hart_state.rf[self.rs1].read()) < se(self.imm, 12)
         )
 
 
@@ -255,7 +295,7 @@ class ShiftRightArithemeticImmediate(Instruction[IType]):
     """
 
     def exec(self, hart_state: HartState) -> None:
-        hart_state.rf[self.rd] = se(hart_state.rf[self.rs1].read(), 32) >> self.imm
+        hart_state.rf[self.rd] = se(hart_state.rf[self.rs1].read()) >> self.imm
 
 
 class LoadUpperImmediate(Instruction[UType]):
@@ -328,8 +368,7 @@ class SetOnLessThan(Instruction[RType]):
 
     def exec(self, hart_state: HartState) -> None:
         hart_state.rf[self.rd] = int(
-            as_signed(hart_state.rf[self.rs1].read())
-            < as_signed(hart_state.rf[self.rs2].read())
+            se(hart_state.rf[self.rs1].read()) < se(hart_state.rf[self.rs2].read())
         )
 
 
@@ -381,7 +420,7 @@ class ShiftRightArithemetic(Instruction[RType]):
         self, hart_state: HartState
     ) -> None:  # cheeky, width of Python int >>>> 32
         hart_state.rf[self.rd] = (
-            se(hart_state.rf[self.rs1].read(), 32) >> hart_state.rf[self.rs2].read()
+            se(hart_state.rf[self.rs1].read()) >> hart_state.rf[self.rs2].read()
         )
 
 
