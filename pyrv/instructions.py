@@ -198,7 +198,7 @@ class LoadWord(Instruction[IType]):
 
     def exec(self, hart: Hart):
         assert hart.system_bus is not None
-        hart.rf.rd = hart.system_bus.read(self.rs1 + se(self.imm, 12), 4)
+        hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 4)
 
 
 class LoadHalfword(Instruction[IType]):
@@ -210,7 +210,8 @@ class LoadHalfword(Instruction[IType]):
     """
 
     def exec(self, hart: Hart):
-        pass
+        assert hart.system_bus is not None
+        hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 2)
 
 
 class LoadByte(Instruction[IType]):
@@ -222,7 +223,8 @@ class LoadByte(Instruction[IType]):
     """
 
     def exec(self, hart: Hart):
-        pass
+        assert hart.system_bus is not None
+        hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 1)
 
 
 class StoreWord(Instruction[SType]):
@@ -234,7 +236,9 @@ class StoreWord(Instruction[SType]):
     """
 
     def exec(self, hart: Hart):
-        pass
+        assert hart.system_bus is not None
+        addr = self.rs1 + se(self.imm, 12)
+        hart.system_bus.write(addr, self.rs2, 4)
 
 
 class StoreHalfword(Instruction[SType]):
@@ -246,7 +250,9 @@ class StoreHalfword(Instruction[SType]):
     """
 
     def exec(self, hart: Hart):
-        pass
+        assert hart.system_bus is not None
+        addr = self.rs1 + se(self.imm, 12)
+        hart.system_bus.write(addr, self.rs2, 2)
 
 
 class StoreByte(Instruction[SType]):
@@ -258,7 +264,9 @@ class StoreByte(Instruction[SType]):
     """
 
     def exec(self, hart: Hart):
-        pass
+        assert hart.system_bus is not None
+        addr = self.rs1 + se(self.imm, 12)
+        hart.system_bus.write(addr, self.rs2, 1)
 
 
 # --- Integer-Register immediate operations ---

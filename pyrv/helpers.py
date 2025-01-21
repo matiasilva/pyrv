@@ -187,7 +187,7 @@ class SystemBus:
         if addr % n != 0:
             raise AddressMisalignedException
 
-    def write(self, addr: int, n: int):
+    def write(self, addr: int, data: int, n: int):
         if 0 <= addr < 0x0010_0000:
             return 3
         elif 0x0010_0000 <= addr < 0x0050_0000:
@@ -195,9 +195,9 @@ class SystemBus:
         else:
             raise AccessFaultException
 
-    def read(self, addr: int, n: int):
+    def read(self, addr: int, n: int) -> int:
         """Read `n` bytes from the system bus"""
-        pass
+        return 0
 
 
 class InstructionMemory:
@@ -229,9 +229,8 @@ class DataMemory:
         if addr > self._contents.size:
             raise AccessFaultException
 
-    def write(self, addr: int, data: tuple) -> None:
-        """Write `data` to the memory starting at address `addr`"""
-        n = len(data)
+    def write(self, addr: int, data: int, n: int) -> None:
+        """Write `n` bytes of `data` to the memory starting at address `addr`"""
         self._check_addr(addr, n)
         self._contents[addr : addr + n] = data
 
