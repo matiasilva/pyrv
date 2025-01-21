@@ -185,6 +185,82 @@ class BranchOnGreaterThanEqualU(Instruction[BType]):
             hart.pc += se(self.imm << 1, 12 + 1)
 
 
+# --- Load/Store instructions ---
+
+
+class LoadWord(Instruction[IType]):
+    """
+    Set rd to the word retrieved from the system bus at the address obtained by
+    adding rs1 to the sign-extended 12-bit immediate
+
+    lw rd, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        assert hart.system_bus is not None
+        hart.rf.rd = hart.system_bus.read(self.rs1 + se(self.imm, 12), 4)
+
+
+class LoadHalfword(Instruction[IType]):
+    """
+    Set rd to the zero-extended halfword retrieved from the system bus at the
+    address obtained by adding rs1 to the sign-extended 12-bit immediate
+
+    lh rd, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        pass
+
+
+class LoadByte(Instruction[IType]):
+    """
+    Set rd to the zero-extended byte retrieved from the system bus at the
+    address obtained by adding rs1 to the sign-extended 12-bit immediate
+
+    lh rd, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        pass
+
+
+class StoreWord(Instruction[SType]):
+    """
+    Write the word in rs2 to the system bus at the address obtained by
+    adding rs1 to the sign-extended 12-bit immediate.
+
+    sw rs2, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        pass
+
+
+class StoreHalfword(Instruction[SType]):
+    """
+    Write the lower 16 bits of rs2 to the system bus at the address obtained by
+    adding rs1 to the sign-extended 12-bit immediate.
+
+    sh rs2, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        pass
+
+
+class StoreByte(Instruction[SType]):
+    """
+    Write the lower 8 bits of rs2 to the system bus at the address obtained by
+    adding rs1 to the sign-extended 12-bit immediate.
+
+    sb rs2, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        pass
+
+
 # --- Integer-Register immediate operations ---
 
 
@@ -466,9 +542,41 @@ OP2INSTR = {
     "lui": LoadUpperImmediate,
     "jal": JumpAndLink,
     "jalr": JumpAndLinkRegister,
+    "lw": LoadWord,
+    "lh": LoadHalfword,
+    "lb": LoadByte,
+    "sw": StoreWord,
+    "sh": StoreHalfword,
+    "sb": StoreByte,
 }
 
-ITYPE_OPS = ("addi", "slti", "sltiu", "andi", "ori", "xori", "slli", "srli", "srai")
-RTYPE_OPS = ("add", "sub", "slt", "sltu", "and", "or", "xor", "sll", "srl", "sra")
+ITYPE_OPS = (
+    "addi",
+    "slti",
+    "sltiu",
+    "andi",
+    "ori",
+    "xori",
+    "slli",
+    "srli",
+    "srai",
+    "lw",
+    "lh",
+    "lb",
+    "jalr",
+)
+RTYPE_OPS = (
+    "add",
+    "sub",
+    "slt",
+    "sltu",
+    "and",
+    "or",
+    "xor",
+    "sll",
+    "srl",
+    "sra",
+)
 UTYPE_OPS = ("lui", "auipc")
-JTYPE_OPS = ("jal", "jalr")
+JTYPE_OPS = ("jal",)
+STYPE_OPS = ("sw", "sh", "sb")

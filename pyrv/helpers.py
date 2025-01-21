@@ -195,6 +195,10 @@ class SystemBus:
         else:
             raise AccessFaultException
 
+    def read(self, addr: int, n: int):
+        """Read `n` bytes from the system bus"""
+        pass
+
 
 class InstructionMemory:
     def __init__(self):
@@ -241,13 +245,16 @@ class Hart:
     """Barebones hart used for tests where a full hart is deliberately omitted"""
 
     def __init__(self):
-        self.pc = MutableRegister()
-        self.register_file = RegisterFile()
+        self.pc: MutableRegister = MutableRegister()
+        self.register_file: RegisterFile = RegisterFile()
         self.rf = self.register_file  # alias
+        self.data_memory: DataMemory | None = None
+        self.system_bus: SystemBus | None = None
 
 
 class BasicHart(Hart):
     def __init__(self):
+        super().__init__()
         self.data_memory = DataMemory()
         self.system_bus = SystemBus()
 
