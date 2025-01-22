@@ -2,13 +2,13 @@ from pyrv.adapters import asm2instr, parse_asm
 
 
 def main() -> int:
-    asm_instrs = []
-    with open("tests/add.s") as file:
-        asm_instrs = [opargs for line in file if (opargs := parse_asm(line))]
-
-    instrs = map(asm2instr, asm_instrs)
-    for instr in instrs:
-        print("")
+    # asm_instrs = []
+    # with open("tests/add.s") as file:
+    #     asm_instrs = [opargs for line in file if (opargs := parse_asm(line))]
+    #
+    # instrs = map(asm2instr, asm_instrs)
+    # for instr in instrs:
+    #     print("")
     return 0
 
 

@@ -170,6 +170,9 @@ KIB = 1024
 MIB = 1024 * KIB
 
 
+type Address = int | Register
+
+
 class SystemBus:
     """
     Dispatches load/store instructions
@@ -192,9 +195,11 @@ class SystemBus:
 
     def read(self, addr: int, n: int) -> int:
         """Read `n` bytes from the system bus"""
-        return 0
+        port = self.addr2port(addr)
+        self._check_addr(addr, n)
+        return port.read(addr, n)
 
-    def addr2port(self, addr):
+    def addr2port(self, addr: int):
         """
         Map an address to a memory-mapped device port.
 
@@ -220,14 +225,11 @@ class InstructionMemory:
     def _check_addr(self, addr: int, n: int) -> None:
         if addr > self._contents.size:
             raise AccessFaultException
-        # further require word alignment
-        if addr % 4 != 0:
-            raise AddressMisalignedException
 
-    def read(self, addr: int, n: int) -> tuple:
+    def read(self, addr: int) -> tuple:
         """Read `n` words from the memory starting at address `addr`"""
-        self._check_addr(addr, n)
-        return self._contents[addr : addr + n]
+        self._check_addr(addr, 4)
+        return self._contents[addr : addr + 4]
 
 
 class DataMemory:
@@ -257,6 +259,12 @@ class SimControl:
     def __init__(self) -> None:
         pass
 
+    def read(self, addr: int, n: int):
+        pass
+
+    def write(self, addr: int, data: int, n: int):
+        pass
+
 
 class Hart:
     """Barebones hart used for tests where a full hart is deliberately omitted"""
@@ -275,6 +283,7 @@ class Hart:
 class BasicHart(Hart):
     def __init__(self):
         super().__init__()
+        # this should really be inside a SoC object
         self.system_bus = SystemBus(self)
 
         # memories
@@ -286,6 +295,10 @@ class BasicHart(Hart):
 
     def step(self):
         """Step the simulator forward by one iteration"""
+        assert self.system_bus is not None
         # fetch
+        instr_word = self.system_bus.read(self.pc.read(), 4)
+
         # decode
+
         # execute

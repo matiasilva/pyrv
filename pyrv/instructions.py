@@ -526,6 +526,44 @@ class And(Instruction[RType]):
         hart.rf[self.rd] = hart.rf[self.rs1] & hart.rf[self.rs2]
 
 
+def bselect(bits: int, msb: int, lsb: int) -> int:
+    """
+    Return the int obtained by slicing `bits` from `msb` to `lsb`.
+    """
+    s = msb - lsb + 1
+    mask = (1 << s) - 1
+    return mask & (bits >> lsb)
+
+
+def decode_instr(instr: int) -> Instruction:
+    op = bselect(instr, 6, 0)
+    funct3 = bselect(instr, 14, 12)
+    funct7 = bselect(instr, 31, 25)
+    match op:
+        case 0b0000011:  # loads
+            pass
+        case 0b0100011:  # stores:
+            pass
+        case 0b0010011:  # immediate arithmetic
+            pass
+        case 0b0110011:  # register arithmetic
+            pass
+        case 0b1100011:  # branches
+            pass
+        case 0b1100111:  # jalr
+            pass
+        case 0b1101111:  # jal
+            pass
+        case 0b0110111:  # lui
+            pass
+        case 0b0010111:  # auipc
+            pass
+        case 0b0001111:  # fence
+            pass
+        case 0b1110011:  # env
+            pass
+
+
 OP2INSTR = {
     "addi": AddImmediate,
     "slti": SetOnLessThanImmediate,
