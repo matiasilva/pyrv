@@ -178,8 +178,8 @@ class SystemBus:
     ports (memory + peripherals) on the system address map
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, hart: "Hart"):
+        self._hart = hart
 
     def _check_addr(self, addr: int, n: int):
         if (n & (n - 1) != 0) or n == 0:
@@ -188,16 +188,29 @@ class SystemBus:
             raise AddressMisalignedException
 
     def write(self, addr: int, data: int, n: int):
-        if 0 <= addr < 0x0010_0000:
-            return 3
-        elif 0x0010_0000 <= addr < 0x0050_0000:
-            return 4
-        else:
-            raise AccessFaultException
+
 
     def read(self, addr: int, n: int) -> int:
         """Read `n` bytes from the system bus"""
         return 0
+
+    def addr2port(self, addr):
+        """
+        Map an address to a memory-mapped device port.
+
+        This is in effect the bus fabric.
+        """
+
+        if 0 <= addr < 0x0010_0000:
+            return self._hart.instruction_memory
+        elif 0x0010_0000 <= addr < 0x0050_0000:
+            return self._hart.data_memory
+        elif 0xffff_ffef <= addr < 0xffff_ffff:
+            return self._hart.sim_control
+        else:
+            raise AccessFaultException
+
+
 
 
 class InstructionMemory:
@@ -240,22 +253,40 @@ class DataMemory:
         return self._contents[addr : addr + n]
 
 
+class SimControl:
+    """Controls interaction with the simulator, like stopping the simulation"""
+
+    def __init__(self) -> None:
+        pass
+
+
 class Hart:
     """Barebones hart used for tests where a full hart is deliberately omitted"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.pc: MutableRegister = MutableRegister()
         self.register_file: RegisterFile = RegisterFile()
-        self.rf = self.register_file  # alias
         self.data_memory: DataMemory | None = None
         self.system_bus: SystemBus | None = None
+        self.sim_control: SimControl | None = None
+
+        self.rf = self.register_file  # alias
 
 
 class BasicHart(Hart):
     def __init__(self):
         super().__init__()
+        self.system_bus = SystemBus(self)
+
+        # memories
         self.data_memory = DataMemory()
-        self.system_bus = SystemBus()
+        self.instruction_memory = InstructionMemory()
+
+        # peripherals
+        self.sim_control = SimControl()
 
     def step(self):
         """Step the simulator forward by one iteration"""
+        # fetch
+        # decode
+        # execute
