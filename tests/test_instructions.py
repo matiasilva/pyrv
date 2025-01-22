@@ -1,7 +1,8 @@
 import pytest
 
-from pyrv.helpers import Hart, Register
+from pyrv.helpers import Register
 from pyrv.instructions import ITYPE_OPS, OP2INSTR, RTYPE_OPS, Instruction, IType, RType
+from pyrv.models import Hart
 from tests.testcases.itype import ITYPE_TESTCASES, TestCaseIType
 from tests.testcases.rtype import RTYPE_TESTCASES, TestCaseRType
 

@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import TypedDict, TypeVar
+from typing import TYPE_CHECKING, TypedDict, TypeVar
 
-from pyrv.helpers import Hart, se
+from pyrv.helpers import InvalidInstructionError, se
+
+if TYPE_CHECKING:
+    from pyrv.models import Hart
 
 T = TypeVar("T", bound=Mapping)
 
@@ -46,7 +49,7 @@ class Instruction[T](ABC):
         self._frame = frame
 
     @abstractmethod
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         pass
 
     @property
@@ -80,7 +83,7 @@ class JumpAndLink(Instruction[JType]):
     jal rd, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         hart.rf[self.rd] = hart.pc + 4
         hart.pc += se(self.imm << 1, 20 + 1)
 
@@ -94,7 +97,7 @@ class JumpAndLinkRegister(Instruction[IType]):
     jalr rd, rs1, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         hart.rf[self.rd] = hart.pc + 4
         val = hart.rf[self.rs1] + se(self.imm << 1, 12 + 1)
         hart.pc.write(val & 0xFFFF_FFFE)
@@ -109,7 +112,7 @@ class BranchEqual(Instruction[BType]):
     beq rs1, rs2, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         if hart.rf[self.rs1] == hart.rf[self.rs2]:
             hart.pc += se(self.imm << 1, 12 + 1)
 
@@ -124,7 +127,7 @@ class BranchNotEqual(Instruction[BType]):
     bne rs1, rs2, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         if hart.rf[self.rs1] != hart.rf[self.rs2]:
             hart.pc += se(self.imm << 1, 12 + 1)
 
@@ -137,7 +140,7 @@ class BranchOnLessThan(Instruction[BType]):
     blt rs1, rs2, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         a = se(hart.rf[self.rs1].read())
         b = se(hart.rf[self.rs2].read())
         if a < b:
@@ -152,7 +155,7 @@ class BranchOnLessThanU(Instruction[BType]):
     bltu rs1, rs2, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         if hart.rf[self.rs1] < hart.rf[self.rs2]:
             hart.pc += se(self.imm << 1, 12 + 1)
 
@@ -165,7 +168,7 @@ class BranchOnGreaterThanEqual(Instruction[BType]):
     bge rs1, rs2, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         a = se(hart.rf[self.rs1].read())
         b = se(hart.rf[self.rs2].read())
         if a >= b:
@@ -180,7 +183,7 @@ class BranchOnGreaterThanEqualU(Instruction[BType]):
     bgeu rs1, rs2, imm
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         if hart.rf[self.rs1] >= hart.rf[self.rs2]:
             hart.pc += se(self.imm << 1, 12 + 1)
 
@@ -196,7 +199,7 @@ class LoadWord(Instruction[IType]):
     lw rd, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 4)
 
@@ -209,7 +212,7 @@ class LoadHalfwordU(Instruction[IType]):
     lhu rd, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 2)
 
@@ -222,9 +225,10 @@ class LoadByteU(Instruction[IType]):
     lbu rd, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 1)
+
 
 class LoadHalfword(Instruction[IType]):
     """
@@ -234,7 +238,7 @@ class LoadHalfword(Instruction[IType]):
     lh rd, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         hart.rf[self.rd] = se(hart.system_bus.read(self.rs1 + se(self.imm, 12), 2), 16)
 
@@ -247,9 +251,10 @@ class LoadByte(Instruction[IType]):
     lb rd, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         hart.rf[self.rd] = se(hart.system_bus.read(self.rs1 + se(self.imm, 12), 1), 8)
+
 
 class StoreWord(Instruction[SType]):
     """
@@ -259,7 +264,7 @@ class StoreWord(Instruction[SType]):
     sw rs2, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         addr = self.rs1 + se(self.imm, 12)
         hart.system_bus.write(addr, self.rs2, 4)
@@ -273,7 +278,7 @@ class StoreHalfword(Instruction[SType]):
     sh rs2, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         addr = self.rs1 + se(self.imm, 12)
         hart.system_bus.write(addr, self.rs2, 2)
@@ -287,7 +292,7 @@ class StoreByte(Instruction[SType]):
     sb rs2, imm(rs1)
     """
 
-    def exec(self, hart: Hart):
+    def exec(self, hart: "Hart"):
         assert hart.system_bus is not None
         addr = self.rs1 + se(self.imm, 12)
         hart.system_bus.write(addr, self.rs2, 1)
@@ -304,7 +309,7 @@ class AddImmediate(Instruction[IType]):
     addi rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] + se(self.imm, 12)
 
 
@@ -316,7 +321,7 @@ class SetOnLessThanImmediate(Instruction[IType]):
     slti rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = int(se(hart.rf[self.rs1].read()) < se(self.imm, 12))
 
 
@@ -328,7 +333,7 @@ class SetOnLessThanImmediateU(Instruction[IType]):
     sltiu rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = int(hart.rf[self.rs1] < se(self.imm, 12))
 
 
@@ -340,7 +345,7 @@ class ExclusiveOrImmediate(Instruction[IType]):
     xori rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] ^ se(self.imm, 12)
 
 
@@ -352,7 +357,7 @@ class OrImmediate(Instruction[IType]):
     ori rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] | se(self.imm, 12)
 
 
@@ -364,7 +369,7 @@ class AndImmediate(Instruction[IType]):
     addi rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] & se(self.imm, 12)
 
 
@@ -376,7 +381,7 @@ class ShiftLeftLogicalImmediate(Instruction[IType]):
     slli rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] << self.imm
 
 
@@ -388,11 +393,11 @@ class ShiftRightLogicalImmediate(Instruction[IType]):
     srli rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] >> self.imm
 
 
-class ShiftRightArithemeticImmediate(Instruction[IType]):
+class ShiftRightArithmeticImmediate(Instruction[IType]):
     """
     Shift the source register right by the lower 5 bits of the immediate, copying the
     sign bit into fresh bits and placing the result in destination register
@@ -400,7 +405,7 @@ class ShiftRightArithemeticImmediate(Instruction[IType]):
     srai rd, rs1, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = se(hart.rf[self.rs1].read()) >> self.imm
 
 
@@ -411,7 +416,7 @@ class LoadUpperImmediate(Instruction[UType]):
     lui rd, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = self.imm << 20
 
 
@@ -423,7 +428,7 @@ class AddUpperImmediateToPc(Instruction[UType]):
     auipc rd, imm
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.pc + self.imm << 20
 
 
@@ -437,7 +442,7 @@ class Add(Instruction[RType]):
     add rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] + hart.rf[self.rs2]
 
 
@@ -448,7 +453,7 @@ class Sub(Instruction[RType]):
     sub rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] - hart.rf[self.rs2]
 
 
@@ -460,7 +465,7 @@ class ShiftLeftLogical(Instruction[RType]):
     sll rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] << hart.rf[self.rs2]
 
 
@@ -472,7 +477,7 @@ class SetOnLessThan(Instruction[RType]):
     slt rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = int(
             se(hart.rf[self.rs1].read()) < se(hart.rf[self.rs2].read())
         )
@@ -486,7 +491,7 @@ class SetOnLessThanU(Instruction[RType]):
     sltu rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = int(hart.rf[self.rs1] < hart.rf[self.rs2])
 
 
@@ -498,7 +503,7 @@ class ExclusiveOr(Instruction[RType]):
     xor rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] ^ hart.rf[self.rs2]
 
 
@@ -510,11 +515,11 @@ class ShiftRightLogical(Instruction[RType]):
     srl rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] >> hart.rf[self.rs2]
 
 
-class ShiftRightArithemetic(Instruction[RType]):
+class ShiftRightArithmetic(Instruction[RType]):
     """
     Shift the first register right by the amount in the second
     register and preserve the sign bit, placing the result in a third register
@@ -522,7 +527,7 @@ class ShiftRightArithemetic(Instruction[RType]):
     sra rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:  # cheeky, width of Python int >>>> 32
+    def exec(self, hart: "Hart") -> None:  # cheeky, width of Python int >>>> 32
         hart.rf[self.rd] = se(hart.rf[self.rs1].read()) >> hart.rf[self.rs2].read()
 
 
@@ -534,7 +539,7 @@ class Or(Instruction[RType]):
     or rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] | hart.rf[self.rs2]
 
 
@@ -546,7 +551,7 @@ class And(Instruction[RType]):
     and rd, rs1, rs2
     """
 
-    def exec(self, hart: Hart) -> None:
+    def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] & hart.rf[self.rs2]
 
 
@@ -572,7 +577,7 @@ def decode_instr(instr: int) -> Instruction:
             frame = IType(rd=rd, rs1=rs1, imm=bselect(instr, 31, 20))
             match funct3:
                 case 0b000:
-                    return LoadByte(frame) 
+                    return LoadByte(frame)
                 case 0b001:
                     return LoadHalfword(frame)
                 case 0b010:
@@ -583,7 +588,7 @@ def decode_instr(instr: int) -> Instruction:
                     return LoadHalfwordU(frame)
         case 0b0100011:  # stores:
             imm = bselect(instr, 31, 25, 5) | bselect(instr, 11, 7)
-            frame = SType(rd=rd, rs1=rs1, imm=imm)
+            frame = SType(rs1=rs1, rs2=rs2, imm=imm)
             match funct3:
                 case 0b000:
                     return StoreByte(frame)
@@ -601,7 +606,7 @@ def decode_instr(instr: int) -> Instruction:
                 case 0b011, _:
                     return SetOnLessThanImmediateU(frame)
                 case 0b100, _:
-                    return ExlusiveOrImmediate(frame)
+                    return ExclusiveOrImmediate(frame)
                 case 0b110, _:
                     return OrImmediate(frame)
                 case 0b111, _:
@@ -637,7 +642,12 @@ def decode_instr(instr: int) -> Instruction:
                     return And(frame)
         case 0b1100011:  # branches
             # TODO: remove shifting from instruction exec
-            imm = bselect(instr, 31, 31, 12) | bselect(instr, 7, 7, 11) | bselect(instr, 30, 25, 5) | bselect(instr, 11, 8, 1)  
+            imm = (
+                bselect(instr, 31, 31, 12)
+                | bselect(instr, 7, 7, 11)
+                | bselect(instr, 30, 25, 5)
+                | bselect(instr, 11, 8, 1)
+            )
             frame = BType(rs1=rs1, rs2=rs2, imm=imm)
             match funct3:
                 case 0b000:
@@ -654,21 +664,30 @@ def decode_instr(instr: int) -> Instruction:
                     return BranchOnGreaterThanEqualU(frame)
         case 0b1100111:  # jalr
             frame = IType(rd=rd, rs1=rs1, imm=bselect(instr, 31, 20))
-            return JumpAndLinkRegister(frame) 
+            return JumpAndLinkRegister(frame)
         case 0b1101111:  # jal
-            imm = bselect(instr, 31, 31, 20) | bselect(instr, 19, 12, 12) | bselect(instr, 20, 20, 11) | bselect(instr, 30, 21, 1)
+            imm = (
+                bselect(instr, 31, 31, 20)
+                | bselect(instr, 19, 12, 12)
+                | bselect(instr, 20, 20, 11)
+                | bselect(instr, 30, 21, 1)
+            )
             frame = JType(rd=rd, imm=imm)
-            return JumpAndLink(frame) 
+            return JumpAndLink(frame)
         case 0b0110111:  # lui
-            frame = UType(rd=rd, imm=bselect(31, 12))
+            frame = UType(rd=rd, imm=bselect(instr, 31, 12))
             return LoadUpperImmediate(frame)
         case 0b0010111:  # auipc
-            frame = UType(rd=rd, imm=bselect(31, 12))
+            frame = UType(rd=rd, imm=bselect(instr, 31, 12))
             return AddUpperImmediateToPc(frame)
         case 0b0001111:  # fence
             pass
         case 0b1110011:  # env
             pass
+        case _:
+            raise InvalidInstructionError
+
+    return Add(RType(rd="x0", rs1="x0", rs2="x0"))  # nop
 
 
 OP2INSTR = {
@@ -680,7 +699,7 @@ OP2INSTR = {
     "xori": ExclusiveOrImmediate,
     "slli": ShiftLeftLogicalImmediate,
     "srli": ShiftRightLogicalImmediate,
-    "srai": ShiftRightArithemeticImmediate,
+    "srai": ShiftRightArithmeticImmediate,
     "add": Add,
     "sub": Sub,
     "slt": SetOnLessThan,
@@ -690,7 +709,7 @@ OP2INSTR = {
     "xor": ExclusiveOr,
     "sll": ShiftLeftLogical,
     "srl": ShiftRightLogical,
-    "sra": ShiftRightArithemetic,
+    "sra": ShiftRightArithmetic,
     "auipc": AddUpperImmediateToPc,
     "lui": LoadUpperImmediate,
     "jal": JumpAndLink,

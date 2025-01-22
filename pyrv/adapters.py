@@ -1,15 +1,10 @@
 """Adapters are utilities that parse input data and output pyrv instruction
-representations"""
+objects"""
 
 import re
 
-import pyrv.instructions as instructions
-from pyrv.instructions import ITYPE_OPS, OP2INSTR, RTYPE_OPS, Instruction
-
-
-class InvalidInstructionError(Exception):
-    pass
-
+from pyrv.helpers import InvalidInstructionError
+from pyrv.instructions import ITYPE_OPS, OP2INSTR, RTYPE_OPS, Instruction, IType, RType
 
 OP_RE = re.compile(r"^\s*(\w+)(.*)$")
 
@@ -18,9 +13,9 @@ def asm2instr(asm: tuple) -> Instruction:
     op, args = asm
 
     if op in ITYPE_OPS:
-        frame = instructions.IType(rd=args[0], rs1=args[1], imm=args[2])
+        frame = IType(rd=args[0], rs1=args[1], imm=args[2])
     elif op in RTYPE_OPS:
-        frame = instructions.RType(rd=args[0], rs1=args[1], rs2=args[2])
+        frame = RType(rd=args[0], rs1=args[1], rs2=args[2])
     else:
         raise InvalidInstructionError
 
