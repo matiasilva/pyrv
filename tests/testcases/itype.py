@@ -214,5 +214,7 @@ ITYPE_TESTCASES = {
     "lw": [],
     "lh": [],
     "lb": [],
+    "lbu": [],
+    "lhu": [],
     "jalr": [],
 }

@@ -201,12 +201,12 @@ class LoadWord(Instruction[IType]):
         hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 4)
 
 
-class LoadHalfword(Instruction[IType]):
+class LoadHalfwordU(Instruction[IType]):
     """
     Set rd to the zero-extended halfword retrieved from the system bus at the
     address obtained by adding rs1 to the sign-extended 12-bit immediate
 
-    lh rd, imm(rs1)
+    lhu rd, imm(rs1)
     """
 
     def exec(self, hart: Hart):
@@ -214,9 +214,21 @@ class LoadHalfword(Instruction[IType]):
         hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 2)
 
 
-class LoadByte(Instruction[IType]):
+class LoadByteU(Instruction[IType]):
     """
     Set rd to the zero-extended byte retrieved from the system bus at the
+    address obtained by adding rs1 to the sign-extended 12-bit immediate
+
+    lbu rd, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        assert hart.system_bus is not None
+        hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 1)
+
+class LoadHalfword(Instruction[IType]):
+    """
+    Set rd to the sign-extended halfword retrieved from the system bus at the
     address obtained by adding rs1 to the sign-extended 12-bit immediate
 
     lh rd, imm(rs1)
@@ -224,8 +236,20 @@ class LoadByte(Instruction[IType]):
 
     def exec(self, hart: Hart):
         assert hart.system_bus is not None
-        hart.rf[self.rd] = hart.system_bus.read(self.rs1 + se(self.imm, 12), 1)
+        hart.rf[self.rd] = se(hart.system_bus.read(self.rs1 + se(self.imm, 12), 2), 16)
 
+
+class LoadByte(Instruction[IType]):
+    """
+    Set rd to the sign-extended byte retrieved from the system bus at the
+    address obtained by adding rs1 to the sign-extended 12-bit immediate
+
+    lb rd, imm(rs1)
+    """
+
+    def exec(self, hart: Hart):
+        assert hart.system_bus is not None
+        hart.rf[self.rd] = se(hart.system_bus.read(self.rs1 + se(self.imm, 12), 1), 8)
 
 class StoreWord(Instruction[SType]):
     """
@@ -526,38 +550,121 @@ class And(Instruction[RType]):
         hart.rf[self.rd] = hart.rf[self.rs1] & hart.rf[self.rs2]
 
 
-def bselect(bits: int, msb: int, lsb: int) -> int:
+def bselect(bits: int, msb: int, lsb: int, shift: int = 0) -> int:
     """
-    Return the int obtained by slicing `bits` from `msb` to `lsb`.
+    Return the int obtained by slicing `bits` from `msb` to `lsb`, optionally
+    shifiting left by `shift`.
     """
     s = msb - lsb + 1
     mask = (1 << s) - 1
-    return mask & (bits >> lsb)
+    return (mask & bits >> lsb) << shift
 
 
 def decode_instr(instr: int) -> Instruction:
     op = bselect(instr, 6, 0)
     funct3 = bselect(instr, 14, 12)
     funct7 = bselect(instr, 31, 25)
+    rd = bselect(instr, 11, 7)
+    rs1 = bselect(instr, 19, 15)
+    rs2 = bselect(instr, 24, 20)
     match op:
         case 0b0000011:  # loads
-            pass
+            frame = IType(rd=rd, rs1=rs1, imm=bselect(instr, 31, 20))
+            match funct3:
+                case 0b000:
+                    return LoadByte(frame) 
+                case 0b001:
+                    return LoadHalfword(frame)
+                case 0b010:
+                    return LoadWord(frame)
+                case 0b100:
+                    return LoadByteU(frame)
+                case 0b101:
+                    return LoadHalfwordU(frame)
         case 0b0100011:  # stores:
-            pass
+            imm = bselect(instr, 31, 25, 5) | bselect(instr, 11, 7)
+            frame = SType(rd=rd, rs1=rs1, imm=imm)
+            match funct3:
+                case 0b000:
+                    return StoreByte(frame)
+                case 0b001:
+                    return StoreHalfword(frame)
+                case 0b010:
+                    return StoreWord(frame)
         case 0b0010011:  # immediate arithmetic
-            pass
+            frame = IType(rd=rd, rs1=rs1, imm=bselect(instr, 31, 20))
+            match funct3, funct7:
+                case 0b000, _:
+                    return AddImmediate(frame)
+                case 0b010, _:
+                    return SetOnLessThanImmediate(frame)
+                case 0b011, _:
+                    return SetOnLessThanImmediateU(frame)
+                case 0b100, _:
+                    return ExlusiveOrImmediate(frame)
+                case 0b110, _:
+                    return OrImmediate(frame)
+                case 0b111, _:
+                    return AndImmediate(frame)
+                case 0b001, _:
+                    return ShiftLeftLogicalImmediate(frame)
+                case 0b101, 0b0000000:
+                    return ShiftRightLogicalImmediate(frame)
+                case 0b101, 0b0100000:
+                    return ShiftRightArithmeticImmediate(frame)
         case 0b0110011:  # register arithmetic
-            pass
+            frame = RType(rd=rd, rs1=rs1, rs2=rs2)
+            match funct3, funct7:
+                case 0b000, 0b0000000:
+                    return Add(frame)
+                case 0b000, 0b0100000:
+                    return Sub(frame)
+                case 0b001, _:
+                    return ShiftLeftLogical(frame)
+                case 0b010, _:
+                    return SetOnLessThan(frame)
+                case 0b011, _:
+                    return SetOnLessThanU(frame)
+                case 0b100, _:
+                    return ExclusiveOr(frame)
+                case 0b101, 0b0000000:
+                    return ShiftRightLogical(frame)
+                case 0b101, 0b0100000:
+                    return ShiftRightArithmetic(frame)
+                case 0b110, _:
+                    return Or(frame)
+                case 0b111, _:
+                    return And(frame)
         case 0b1100011:  # branches
-            pass
+            # TODO: remove shifting from instruction exec
+            imm = bselect(instr, 31, 31, 12) | bselect(instr, 7, 7, 11) | bselect(instr, 30, 25, 5) | bselect(instr, 11, 8, 1)  
+            frame = BType(rs1=rs1, rs2=rs2, imm=imm)
+            match funct3:
+                case 0b000:
+                    return BranchEqual(frame)
+                case 0b001:
+                    return BranchNotEqual(frame)
+                case 0b100:
+                    return BranchOnLessThan(frame)
+                case 0b101:
+                    return BranchOnGreaterThanEqual(frame)
+                case 0b110:
+                    return BranchOnLessThanU(frame)
+                case 0b111:
+                    return BranchOnGreaterThanEqualU(frame)
         case 0b1100111:  # jalr
-            pass
+            frame = IType(rd=rd, rs1=rs1, imm=bselect(instr, 31, 20))
+            return JumpAndLinkRegister(frame) 
         case 0b1101111:  # jal
-            pass
+            imm = bselect(instr, 31, 31, 20) | bselect(instr, 19, 12, 12) | bselect(instr, 20, 20, 11) | bselect(instr, 30, 21, 1)
+            frame = JType(rd=rd, imm=imm)
+            return JumpAndLink(frame) 
         case 0b0110111:  # lui
-            pass
+            frame = UType(rd=rd, imm=bselect(31, 12))
+            return LoadUpperImmediate(frame)
         case 0b0010111:  # auipc
-            pass
+            frame = UType(rd=rd, imm=bselect(31, 12))
+            return AddUpperImmediateToPc(frame)
         case 0b0001111:  # fence
             pass
         case 0b1110011:  # env
@@ -591,6 +698,8 @@ OP2INSTR = {
     "lw": LoadWord,
     "lh": LoadHalfword,
     "lb": LoadByte,
+    "lhu": LoadHalfwordU,
+    "lbu": LoadByteU,
     "sw": StoreWord,
     "sh": StoreHalfword,
     "sb": StoreByte,
@@ -609,6 +718,8 @@ ITYPE_OPS = (
     "lw",
     "lh",
     "lb",
+    "lbu",
+    "lhu",
     "jalr",
 )
 RTYPE_OPS = (
