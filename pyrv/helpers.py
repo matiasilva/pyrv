@@ -188,7 +188,7 @@ class SystemBus:
             raise AddressMisalignedException
 
     def write(self, addr: int, data: int, n: int):
-
+        pass
 
     def read(self, addr: int, n: int) -> int:
         """Read `n` bytes from the system bus"""
@@ -205,12 +205,10 @@ class SystemBus:
             return self._hart.instruction_memory
         elif 0x0010_0000 <= addr < 0x0050_0000:
             return self._hart.data_memory
-        elif 0xffff_ffef <= addr < 0xffff_ffff:
+        elif 0xFFFF_FFEF <= addr < 0xFFFF_FFFF:
             return self._hart.sim_control
         else:
             raise AccessFaultException
-
-
 
 
 class InstructionMemory:
@@ -267,6 +265,7 @@ class Hart:
         self.pc: MutableRegister = MutableRegister()
         self.register_file: RegisterFile = RegisterFile()
         self.data_memory: DataMemory | None = None
+        self.instruction_memory: InstructionMemory | None = None
         self.system_bus: SystemBus | None = None
         self.sim_control: SimControl | None = None
 
