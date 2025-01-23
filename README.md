@@ -28,7 +28,8 @@ To run the tests:
 uv run pytest
 ```
 
-> [!WARNING] You need a working set of the GNU Compiler Toolchain for RISC-V,
+> [!WARNING]
+> You need a working set of the GNU Compiler Toolchain for RISC-V,
 > built specifically for the ISA you are targeting. It doesn't matter if you
 > specify `-march`; if your compiler isn't built for it, it won't work!
 
