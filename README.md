@@ -19,14 +19,21 @@ used for any official work.
 
 ## Development
 
-Dependencies are managed with [uv](https://docs.astral.sh/uv/). There is active
-CI infrastructure that guarantees test conformance.
+Dependencies are managed with [uv](https://docs.astral.sh/uv/). You can consult
+the `pyproject.toml` for more detail on `pyrv`'s dependencies.
 
 To run the tests:
 
 ```bash
 uv run pytest
 ```
+
+> [!WARNING] You need a working set of the GNU Compiler Toolchain for RISC-V,
+> built specifically for the ISA you are targeting. It doesn't matter if you
+> specify `-march`; if your compiler isn't built for it, it won't work!
+
+There is robust CI infrastructure in place to run all tests on each pull request
+/ commit to master.
 
 To run lint:
 
@@ -51,4 +58,4 @@ Matias Wang Silva, 2025
 
 ## TODO
 
-<https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof> use numpy types
+<https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof>

@@ -1,3 +1,7 @@
+"""
+Contains common utilities and basic object definitions.
+"""
+
 from typing import Self
 
 

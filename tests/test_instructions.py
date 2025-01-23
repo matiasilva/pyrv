@@ -1,3 +1,7 @@
+"""
+Contains functional tests of instruction classes.
+"""
+
 import pytest
 
 from pyrv.helpers import Register

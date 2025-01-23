@@ -1,3 +1,7 @@
+"""
+Contains models of different hardware blocks, including the Hart.
+"""
+
 import numpy
 
 from pyrv.helpers import (
@@ -170,7 +174,9 @@ class SimControl:
 
 
 class Hart:
-    """Barebones hart used for tests where a full hart is deliberately omitted"""
+    """
+    Barebones hart used for tests where a full system bus and memories are unnecessary
+    """
 
     def __init__(self) -> None:
         self.pc: MutableRegister = MutableRegister()
@@ -184,6 +190,10 @@ class Hart:
 
 
 class BasicHart(Hart):
+    """
+    A hart containing the minimum necessary components for code execution.
+    """
+
     def __init__(self):
         super().__init__()
         # this should really be inside a SoC object

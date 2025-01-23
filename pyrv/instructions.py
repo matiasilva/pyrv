@@ -1,3 +1,8 @@
+"""
+Contains object definitions for supported instructions and data frames,
+as well as utilities for working with these.
+"""
+
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, TypedDict, TypeVar

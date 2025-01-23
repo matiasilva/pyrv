@@ -1,5 +1,7 @@
-"""Adapters are utilities that parse input data and output pyrv instruction
-objects"""
+"""
+Contains different adapters for supported input formats. Adapters are utilities that
+parse input data and output pyrv instruction objects
+"""
 
 import re
 
