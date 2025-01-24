@@ -819,3 +819,4 @@ RTYPE_OPS = (
 UTYPE_OPS = ("lui", "auipc")
 JTYPE_OPS = ("jal",)
 STYPE_OPS = ("sw", "sh", "sb")
+BTYPE_OPS = ("beq", "bne", "blt", "bltu", "bge", "bgeu")
