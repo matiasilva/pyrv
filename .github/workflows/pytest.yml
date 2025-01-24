@@ -8,7 +8,7 @@ on:
 
 env:
   RISCV_TOOLCHAIN_URL: ${{ vars.RISCV_TOOLCHAIN_URL }}
-  RISCV_TOOLCHAIN_PATH: 'scripts/bin/'
+  RISCV_TOOLCHAIN_PATH: 'build/bin/'
   RISCV_TOOLCHAIN_PREFIX: riscv32
 
 permissions:
@@ -35,12 +35,12 @@ jobs:
       id: cache-riscv-toolchain
       uses: actions/cache@v4
       with:
-        path: scripts/bin
+        path: build/bin/
         key: ${{ runner.os }}-riscv-toolchain
 
     - name: Download RISC-V toolchain
       if: steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
-      run: ./scripts/bootstrap_riscv_toolchain.sh && tree
+      run: ./scripts/bootstrap_riscv_toolchain.sh
 
     - name: Test with pytest
       run: uv run pytest
