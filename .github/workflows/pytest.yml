@@ -8,7 +8,7 @@ on:
 
 env:
   RISCV_TOOLCHAIN_URL: ${{ vars.RISCV_TOOLCHAIN_URL }}
-  RISCV_TOOLCHAIN_PATH: scripts/bin
+  RISCV_TOOLCHAIN_PATH: scripts/bin/
   RISCV_TOOLCHAIN_PREFIX: riscv32
 
 permissions:
@@ -28,6 +28,8 @@ jobs:
         version: "0.5.21"
     - name: Set up Python 3.13
       uses: actions/setup-python@v3
+      with:
+        python-version-file: 'pyproject.toml'
 
     - name: Cache RISC-V toolchain 
       id: cache-riscv-toolchain
