@@ -8,23 +8,27 @@ import pytest
 from pyrv.instructions import decode_instr
 from tests.testcases.decode import DECODE_TESTCASES
 
-
-def parse_path(a_path: str | int) -> Path | None:
-    if a_path and (the_path := Path(a_path)).is_dir():
-        return the_path
+RISCV_TOOLCHAIN_PATH = os.getenv('RISCV_TOOLCHAIN_PATH')
+RISCV_TOOLCHAIN_PREFIX = os.getenv('RISCV_TOOLCHAIN_PREFIX', 'riscv64')
 
 
-RISCV_TOOLCHAIN_PATH = parse_path(os.getenv('RISCV_TOOLCHAIN_PATH'))
-RISCV_TOOLCHAIN_PREFIX = os.getenv('RISCV_TOOLCHAIN_PREFIX') or 'riscv64'
-ASSEMBLER_CMD = [f"{str(RISCV_TOOLCHAIN_PATH) if RISCV_TOOLCHAIN_PATH else ""}{RISCV_TOOLCHAIN_PREFIX}-unknown-elf-as", "-march=rv32i", "-mabi=ilp32"]
+def rvbinpath(gnu_bin: str) -> str:
+    """Return the string path to a valid RISC-V binary on the system"""
+
+    p = f"{RISCV_TOOLCHAIN_PREFIX}-unknown-elf-{gnu_bin}"
+    if RISCV_TOOLCHAIN_PATH and (the_path := Path(RISCV_TOOLCHAIN_PATH)).is_dir():
+        p = the_path / p
+
+    return str(p)
+
+ASSEMBLER_CMD = [rvbinpath('as'), "-march=rv32i", "-mabi=ilp32"]
 ELF2BIN_CMD = [
-    f"{str(RISCV_TOOLCHAIN_PATH) if RISCV_TOOLCHAIN_PATH else ""}{RISCV_TOOLCHAIN_PREFIX}-unknown-elf-objcopy",
+    rvbinpath('objcopy'),
     "-S",
     "-O",
     "binary",
     "--only-section=.text",
 ]
-
 
 def get_rel_file(file_path: str):
     """Retrieve the absolute path of a file relative to the tests directory"""
