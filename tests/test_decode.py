@@ -1,4 +1,3 @@
-import os
 import struct
 import subprocess
 from pathlib import Path
@@ -6,39 +5,17 @@ from pathlib import Path
 import pytest
 
 from pyrv.instructions import decode_instr
+from tests.helpers import get_rel_file, rvbinpath
 from tests.testcases.decode import DECODE_TESTCASES
 
-RISCV_TOOLCHAIN_PATH = os.getenv('RISCV_TOOLCHAIN_PATH')
-RISCV_TOOLCHAIN_PREFIX = os.getenv('RISCV_TOOLCHAIN_PREFIX', 'riscv64')
-
-
-def rvbinpath(gnu_bin: str) -> str:
-    """Return the string path to a valid RISC-V binary on the system"""
-
-    p = f"{RISCV_TOOLCHAIN_PREFIX}-unknown-elf-{gnu_bin}"
-    if RISCV_TOOLCHAIN_PATH and (the_path := Path(RISCV_TOOLCHAIN_PATH)).is_dir():
-        p = the_path / p
-
-    return str(p)
-
-ASSEMBLER_CMD = [rvbinpath('as'), "-march=rv32i", "-mabi=ilp32"]
+ASSEMBLER_CMD = [rvbinpath("as"), "-march=rv32i", "-mabi=ilp32"]
 ELF2BIN_CMD = [
-    rvbinpath('objcopy'),
+    rvbinpath("objcopy"),
     "-S",
     "-O",
     "binary",
     "--only-section=.text",
 ]
-
-def get_rel_file(file_path: str):
-    """Retrieve the absolute path of a file relative to the tests directory"""
-    return Path(__file__).parent / file_path
-
-
-@pytest.fixture(scope="session")
-def build_dir(tmp_path_factory):
-    """Create a temporary build directory that persists for the test session"""
-    return tmp_path_factory.mktemp("build")
 
 
 def compile_assembly(build_dir: Path) -> Path:
