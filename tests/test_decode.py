@@ -1,3 +1,4 @@
+import os
 import struct
 import subprocess
 from pathlib import Path
@@ -7,9 +8,17 @@ import pytest
 from pyrv.instructions import decode_instr
 from tests.testcases.decode import DECODE_TESTCASES
 
-ASSEMBLER_CMD = ["riscv64-unknown-elf-as", "-march=rv32i", "-mabi=ilp32"]
+
+def parse_path(a_path: str | int) -> Path | None:
+    if a_path and (the_path := Path(a_path)).is_dir():
+        return the_path
+
+
+RISCV_TOOLCHAIN_PATH = parse_path(os.getenv('RISCV_TOOLCHAIN_PATH'))
+RISCV_TOOLCHAIN_PREFIX = os.getenv('RISCV_TOOLCHAIN_PREFIX') or 'riscv64'
+ASSEMBLER_CMD = [f"{str(RISCV_TOOLCHAIN_PATH) if RISCV_TOOLCHAIN_PATH else ""}{RISCV_TOOLCHAIN_PREFIX}-unknown-elf-as", "-march=rv32i", "-mabi=ilp32"]
 ELF2BIN_CMD = [
-    "riscv64-unknown-elf-objcopy",
+    f"{str(RISCV_TOOLCHAIN_PATH) if RISCV_TOOLCHAIN_PATH else ""}{RISCV_TOOLCHAIN_PREFIX}-unknown-elf-objcopy",
     "-S",
     "-O",
     "binary",
