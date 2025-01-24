@@ -1,15 +1,20 @@
-import os
+import struct
 import subprocess
 from pathlib import Path
 
 import pytest
 
 from pyrv.instructions import decode_instr
+from tests.testcases.decode import DECODE_TESTCASES
 
-ASSEMBLER_CMD = (
-    "riscv64-unknown-elf-as -march=rv32i -mabi=ilp32 -o {out_file} {in_file}"
-)
-BIN_CMD = "riscv64-unknown-elf-objcopy -S -O binary {in_file} {out_file}"
+ASSEMBLER_CMD = ["riscv64-unknown-elf-as", "-march=rv32i", "-mabi=ilp32"]
+ELF2BIN_CMD = [
+    "riscv64-unknown-elf-objcopy",
+    "-S",
+    "-O",
+    "binary",
+    "--only-section=.text",
+]
 
 
 def get_rel_file(file_path: str):
@@ -24,45 +29,48 @@ def build_dir(tmp_path_factory):
 
 
 def compile_assembly(build_dir: Path) -> Path:
-    """Compile assembly file to binary"""
+    """Compile assembly file to elf"""
     out_path = build_dir / "test.elf"
     in_path = get_rel_file("testcases/decode.s")
-    cmd = ASSEMBLER_CMD.format(out_path, in_path)
+    cmd = ASSEMBLER_CMD + ["-o", str(out_path), str(in_path)]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(f"asm compilation failed:\n{result.stderr}")
+        raise RuntimeError(f"asm compilation failed:\n{result.stderr}\n{result.args}")
 
     return out_path
 
 
-def link_binary(obj_path: Path, build_dir: Path, linker_cmd: list) -> Path:
-    """Link object file to executable"""
-    bin_path = build_dir / obj_path.stem
-    cmd = [*linker_cmd, "-o", str(bin_path), str(obj_path)]
+def elf2bin(in_path: Path, build_dir: Path) -> Path:
+    """Extract the instructions from an elf file and store them in a binary"""
+    out_path = build_dir / "test.bin"
+    cmd = ELF2BIN_CMD + [str(in_path), str(out_path)]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(f"Linking failed:\n{result.stderr}")
+        raise RuntimeError(f".text extraction failed:\n{result.stderr}")
 
-    return bin_path
-
-
-@pytest.fixture
-def test_binary(tmp_path, build_dir, assembler_cmd, linker_cmd):
-    """Fixture to compile test assembly into binary"""
-    # Assuming test files are in a 'test_asm' directory next to the test file
-    asm_dir = Path(__file__).parent / "test_asm"
-    test_asm = asm_dir / "test.asm"
-
-    obj_file = self.compile_assembly(test_asm, build_dir, assembler_cmd)
-    binary = self.link_binary(obj_file, build_dir, linker_cmd)
-
-    return binary
+    return out_path
 
 
-def test_binary_execution(test_binary):
-    """Example test that runs the binary and checks its output"""
-    result = subprocess.run([str(test_binary)], capture_output=True)
-    assert result.returncode == 0
-    # Add your binary processing and assertions here
+@pytest.fixture(scope="session")
+def instr_words(build_dir: Path) -> list:
+    """Fixture to compile test assembly into list of words"""
+
+    elf_path = compile_assembly(build_dir)
+    bin_path = elf2bin(elf_path, build_dir)
+    bin_data = bin_path.read_bytes()
+    words = list(struct.unpack(f"<{len(bin_data) // 4}I", bin_data))
+    return words
+
+
+def test_instr_decode_from_bin(instr_words):
+    """Instruction decode litmus test for all RV32I instructions"""
+
+    instrs = [decode_instr(instr) for instr in instr_words]
+    for exp, true in zip(instrs, DECODE_TESTCASES, strict=True):
+        assert exp == true
+
+
+def test_instr_decode_from_asm(instr_words):
+    pass

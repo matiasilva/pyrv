@@ -2,6 +2,8 @@
 Contains models of different hardware blocks, including the Hart.
 """
 
+from typing import TYPE_CHECKING
+
 import numpy
 
 from pyrv.helpers import (
@@ -10,59 +12,59 @@ from pyrv.helpers import (
     MutableRegister,
     Register,
 )
-from pyrv.instructions import decode_instr
+
+if TYPE_CHECKING:
+    from pyrv.harts import Hart
 
 
-# TODO: consider subclassing Sequence, Mapping (tried but was a mypy PITA)
 class RegisterFile:
+    ALIASES = {
+        "zero": 0,
+        "ra": 1,
+        "sp": 2,
+        "gp": 3,
+        "tp": 4,
+        "t0": 5,
+        "t1": 6,
+        "t2": 7,
+        "fp": 8,
+        "s0": 8,
+        "s1": 9,
+        "a0": 10,
+        "a1": 11,
+        "a2": 12,
+        "a3": 13,
+        "a4": 14,
+        "a5": 15,
+        "a6": 16,
+        "a7": 17,
+        "s2": 18,
+        "s3": 19,
+        "s4": 20,
+        "s5": 21,
+        "s6": 22,
+        "s7": 23,
+        "s8": 24,
+        "s9": 25,
+        "s10": 26,
+        "s11": 27,
+        "t3": 28,
+        "t4": 29,
+        "t5": 30,
+        "t6": 31,
+    }
+    REVALIASES = {v: k for k, v in ALIASES.items()}
+    ALIASES |= {f"x{i}": i for i in range(32)}  # add x0, x1, ... aliases
+
     def __init__(self) -> None:
         self._items: tuple = (Register(),) + tuple(MutableRegister() for _ in range(31))
-
-        self._aliases = {
-            "zero": 0,
-            "ra": 1,
-            "sp": 2,
-            "gp": 3,
-            "tp": 4,
-            "t0": 5,
-            "t1": 6,
-            "t2": 7,
-            "fp": 8,
-            "s0": 8,
-            "s1": 9,
-            "a0": 10,
-            "a1": 11,
-            "a2": 12,
-            "a3": 13,
-            "a4": 14,
-            "a5": 15,
-            "a6": 16,
-            "a7": 17,
-            "s2": 18,
-            "s3": 19,
-            "s4": 20,
-            "s5": 21,
-            "s6": 22,
-            "s7": 23,
-            "s8": 24,
-            "s9": 25,
-            "s10": 26,
-            "s11": 27,
-            "t3": 28,
-            "t4": 29,
-            "t5": 30,
-            "t6": 31,
-        }
-        self._aliases |= {f"x{i}": i for i in range(32)}  # add x0, x1, ... aliases
 
     def __getitem__(self, key: int | str) -> Register:
         match key:
             case int():
                 idx = key
             case str():
-                idx = self._aliases[key]
-            case _:
-                raise KeyError(f"Alias {key} not bound")
+                idx = self.ALIASES[key]
         return self._items[idx]
 
     def __setitem__(self, key: int | str, value: int | Register) -> None:
@@ -171,47 +173,3 @@ class SimControl:
 
     def write(self, addr: int, data: int, n: int):
         pass
-
-
-class Hart:
-    """
-    Barebones hart used for tests where a full system bus and memories are unnecessary
-    """
-
-    def __init__(self) -> None:
-        self.pc: MutableRegister = MutableRegister()
-        self.register_file: RegisterFile = RegisterFile()
-        self.data_memory: DataMemory | None = None
-        self.instruction_memory: InstructionMemory | None = None
-        self.system_bus: SystemBus | None = None
-        self.sim_control: SimControl | None = None
-
-        self.rf = self.register_file  # alias
-
-
-class BasicHart(Hart):
-    """
-    A hart containing the minimum necessary components for code execution.
-    """
-
-    def __init__(self):
-        super().__init__()
-        # this should really be inside a SoC object
-        self.system_bus = SystemBus(self)
-
-        # memories
-        self.data_memory = DataMemory()
-        self.instruction_memory = InstructionMemory()
-
-        # peripherals
-        self.sim_control = SimControl()
-
-    def step(self):
-        """Step the simulator forward by one iteration"""
-        assert self.system_bus is not None
-        # fetch
-        instr_word = self.system_bus.read(self.pc.read(), 4)
-        # decode
-        instr = decode_instr(instr_word)
-        # execute
-        instr.exec(self)

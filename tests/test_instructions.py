@@ -4,9 +4,9 @@ Contains functional tests of instruction classes.
 
 import pytest
 
+from pyrv.harts import Hart
 from pyrv.helpers import Register
 from pyrv.instructions import ITYPE_OPS, OP2INSTR, RTYPE_OPS, Instruction, IType, RType
-from pyrv.models import Hart
 from tests.testcases.itype import ITYPE_TESTCASES, TestCaseIType
 from tests.testcases.rtype import RTYPE_TESTCASES, TestCaseRType
 

@@ -25,7 +25,7 @@ ITYPE_TESTCASES = {
         ),
         TestCaseIType(
             "addi_neg",
-            {"rd": 1, "rs1": 2, "imm": (-5 & IMM_MASK)},
+            {"rd": 1, "rs1": 2, "imm": -5},
             initial_rs1=10,
             expected_rd=5,
         ),
@@ -45,7 +45,7 @@ ITYPE_TESTCASES = {
     "slti": [
         TestCaseIType(
             "slti_true_nn",
-            {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
+            {"rd": 1, "rs1": 2, "imm": -8},
             initial_rs1=-48,
             expected_rd=1,
         ),
@@ -57,13 +57,13 @@ ITYPE_TESTCASES = {
         ),
         TestCaseIType(
             "slti_false_pn",
-            {"rd": 1, "rs1": 2, "imm": (-48 & IMM_MASK)},
+            {"rd": 1, "rs1": 2, "imm": -48},
             initial_rs1=28,
             expected_rd=0,
         ),
         TestCaseIType(
             "slti_false_nn",
-            {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
+            {"rd": 1, "rs1": 2, "imm": -8},
             initial_rs1=-2,
             expected_rd=0,
         ),
@@ -75,7 +75,7 @@ ITYPE_TESTCASES = {
         ),
         TestCaseIType(
             "slti_equal_n",
-            {"rd": 1, "rs1": 2, "imm": (-8 & IMM_MASK)},
+            {"rd": 1, "rs1": 2, "imm": -8},
             initial_rs1=-8,
             expected_rd=0,
         ),
@@ -146,7 +146,7 @@ ITYPE_TESTCASES = {
         ),
         TestCaseIType(
             "xori_not",
-            {"rd": 1, "rs1": 2, "imm": (-1 & IMM_MASK)},
+            {"rd": 1, "rs1": 2, "imm": -1},
             initial_rs1=0xFF00_FF00,
             expected_rd=0x00FF_00FF,
         ),
