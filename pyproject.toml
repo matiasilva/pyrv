@@ -3,7 +3,7 @@ name = "pyrv"
 version = "0.1.0"
 description = "RV32I instruction set simulator"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.2.2",
     "pytest>=8.3.4",
