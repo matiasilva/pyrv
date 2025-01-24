@@ -118,7 +118,6 @@ def test_comparison_operations(reg: Register):
 
 def test_edge_cases(max_reg):
     # test operations with maximum values
-    print(max_reg + 1)
     assert max_reg + 1 == 0
     assert max_reg - 0xFFFFFFFF == 0
     assert max_reg & 0 == 0
