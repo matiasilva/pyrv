@@ -2,13 +2,13 @@ name: Run tests
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 env:
   RISCV_TOOLCHAIN_URL: ${{ vars.RISCV_TOOLCHAIN_URL }}
-  RISCV_TOOLCHAIN_PATH: 'build/bin/'
+  RISCV_TOOLCHAIN_PATH: "build/bin/"
   RISCV_TOOLCHAIN_PREFIX: riscv32
 
 permissions:
@@ -16,31 +16,30 @@ permissions:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        version: "0.5.21"
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version-file: 'pyproject.toml'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.5.21"
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
 
-    - name: Cache RISC-V toolchain 
-      id: cache-riscv-toolchain
-      uses: actions/cache@v4
-      with:
-        path: build/bin/
-        key: ${{ runner.os }}-riscv-toolchain
+      - name: Cache RISC-V toolchain
+        id: cache-riscv-toolchain
+        uses: actions/cache@v4
+        with:
+          path: build/
+          key: ${{ runner.os }}-riscv-toolchain
 
-    - name: Download RISC-V toolchain
-      if: steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
-      run: ./scripts/bootstrap_riscv_toolchain.sh
+      - name: Download RISC-V toolchain
+        if: steps.cache-riscv-toolchain.outputs.cache-hit != 'true'
+        run: ./scripts/bootstrap_riscv_toolchain.sh
 
-    - name: Test with pytest
-      run: uv run pytest
+      - name: Test with pytest
+        run: uv run pytest
