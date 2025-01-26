@@ -75,15 +75,10 @@ def parse_asm(line: str) -> tuple | None:
         return (op, args)
 
 
-def load_elf(path: str | Path) -> ELFFile:
+def check_elf(elf_file: ELFFile):
     """
-    Load and validate basic parameters of an ELF file, ensuring safe subsequent usage
+    Validate basic parameters of an ELF file, ensuring safe subsequent usage
     """
-
-    if not Path(path).is_file():
-        raise FileNotFoundError
-    with open(path, "rb") as f:
-        elf_file = ELFFile(f)
 
     endianness = elf_desc.describe_ei_data(elf_file["e_ident"]["EI_DATA"])
     logger.info(f"Found ELF file: {elf_file.get_machine_arch()}, {endianness}")
@@ -96,4 +91,3 @@ def load_elf(path: str | Path) -> ELFFile:
     )
     if any(conds):
         raise UnsupportedExecutableError
-    return elf_file

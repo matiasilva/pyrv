@@ -115,9 +115,9 @@ class SystemBus:
         This is in effect the bus fabric.
         """
 
-        if 0 <= addr < 0x0010_0000:
+        if 0 <= addr < 0x0200_0000:
             return self._hart.instruction_memory
-        elif 0x0010_0000 <= addr < 0x0050_0000:
+        elif 0x0200_0000 <= addr < 0x0800_0000:
             return self._hart.data_memory
         elif 0xFFFF_FFEF <= addr < 0xFFFF_FFFF:
             return self._hart.sim_control
@@ -127,7 +127,7 @@ class SystemBus:
 
 class InstructionMemory:
     def __init__(self):
-        self.SIZE = 1 * 1024
+        self.SIZE = 2 * 1024
         """The size of the memory in kiB"""
         self._contents = numpy.zeros(self.SIZE * 1024, numpy.uint8)
 
@@ -135,15 +135,18 @@ class InstructionMemory:
         if addr > self._contents.size:
             raise AccessFaultException
 
-    def read(self, addr: int) -> tuple:
+    def read(self, addr: int, n: int) -> tuple:
         """Read `n` words from the memory starting at address `addr`"""
         self._check_addr(addr, 4)
         return self._contents[addr : addr + 4]
 
+    def load(self, data: bytes, offset=0) -> None:
+        self._contents[: len(data)] = memoryview(data)
+
 
 class DataMemory:
     def __init__(self):
-        self.SIZE = 4 * 1024
+        self.SIZE = 6 * 1024
         """The size of the memory in kiB"""
         self._contents = numpy.zeros(self.SIZE * 1024, numpy.uint8)
 

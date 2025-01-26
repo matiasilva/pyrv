@@ -1,3 +1,5 @@
+from elftools.elf.constants import P_FLAGS
+from elftools.elf.elffile import ELFFile
 from pyrv.helpers import MutableRegister
 from pyrv.models import (
     DataMemory,
@@ -7,6 +9,8 @@ from pyrv.models import (
     SystemBus,
 )
 from pyrv.instructions import decode_instr
+from pyrv.adapters import check_elf
+from pathlib import Path
 
 
 class Hart:
@@ -52,13 +56,21 @@ class BasicHart(Hart):
         # execute
         instr.exec(self)
 
-    def load(self):
+    def load(self, elf_path: Path | str):
         """
-        Load a program into instruction memory, via the simulator
+        Load an ELF file directly into instruction and data memory, via the simulator
 
         This does not emulate the traditional word-by-word writing
         of bytes to memory over QSPI -> AHB -> memory, and instead
         sets the internal memory array immediately.
         """
+        elf_path = Path(elf_path)
+        if not elf_path.is_file():
+            raise FileNotFoundError
 
-        pass
+        with open(elf_path, "rb") as f:
+            elf_file = ELFFile(f)
+            check_elf(elf_file)
+            for seg in elf_file.iter_segments("PT_LOAD"):
+                if seg["p_flags"] & P_FLAGS.PF_X:
+                    self.instruction_memory.load(seg.data())

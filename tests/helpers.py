@@ -26,10 +26,11 @@ COMPILE_CMD = [
     "-march=rv32i",
     "-mabi=ilp32",
     "-T",
-    "sdk/rv32i.ld",
+    "sdk/riscv-soc.ld",
     "-I",
     "sdk",
     "-nostdlib",
+    "-Wl,-n",
 ]
 
 
