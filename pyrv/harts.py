@@ -51,3 +51,14 @@ class BasicHart(Hart):
         instr = decode_instr(instr_word)
         # execute
         instr.exec(self)
+
+    def load(self):
+        """
+        Load a program into instruction memory, via the simulator
+
+        This does not emulate the traditional word-by-word writing
+        of bytes to memory over QSPI -> AHB -> memory, and instead
+        sets the internal memory array immediately.
+        """
+
+        pass

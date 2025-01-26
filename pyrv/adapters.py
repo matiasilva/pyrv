@@ -3,9 +3,14 @@ Contains different adapters for supported input formats. Adapters are utilities 
 parse input data and output pyrv instruction objects
 """
 
+import logging
 import re
+from pathlib import Path
 
-from pyrv.helpers import InvalidInstructionError
+from elftools.elf.elffile import ELFFile
+import elftools.elf.descriptions as elf_desc
+
+from pyrv.helpers import InvalidInstructionError, UnsupportedExecutableError
 from pyrv.instructions import (
     BTYPE_OPS,
     ITYPE_OPS,
@@ -24,6 +29,7 @@ from pyrv.instructions import (
 )
 
 OP_RE = re.compile(r"^\s*(\w+)(.*)$")
+logger = logging.getLogger(__name__)
 
 
 def asm2instr(asm: tuple) -> Instruction:
@@ -67,3 +73,27 @@ def parse_asm(line: str) -> tuple | None:
             args = args[:i]
         args = [a.strip() for a in args.split(",")]
         return (op, args)
+
+
+def load_elf(path: str | Path) -> ELFFile:
+    """
+    Load and validate basic parameters of an ELF file, ensuring safe subsequent usage
+    """
+
+    if not Path(path).is_file():
+        raise FileNotFoundError
+    with open(path, "rb") as f:
+        elf_file = ELFFile(f)
+
+    endianness = elf_desc.describe_ei_data(elf_file["e_ident"]["EI_DATA"])
+    logger.info(f"Found ELF file: {elf_file.get_machine_arch()}, {endianness}")
+
+    conds = (
+        elf_file["e_machine"] != "EM_RISCV",
+        elf_file.elfclass != 32,
+        not elf_file.little_endian,
+        elf_file["e_type"] != "ET_EXEC",
+    )
+    if any(conds):
+        raise UnsupportedExecutableError
+    return elf_file

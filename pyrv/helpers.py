@@ -106,3 +106,7 @@ class AccessFaultException(Exception):
 
 class InvalidInstructionError(Exception):
     pass
+
+
+class UnsupportedExecutableError(Exception):
+    pass

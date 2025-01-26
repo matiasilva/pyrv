@@ -29,7 +29,7 @@ COMPILE_CMD = [
     "sdk/rv32i.ld",
     "-I",
     "sdk",
-    "-nostartfiles",
+    "-nostdlib",
 ]
 
 

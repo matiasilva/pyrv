@@ -1,14 +1,22 @@
-from pyrv.adapters import asm2instr, parse_asm
+import logging
+from pathlib import Path
+
+from pyrv.adapters import load_elf
+from tests.helpers import compile_sourcefile
 
 
 def main() -> int:
-    # asm_instrs = []
-    # with open("tests/add.s") as file:
-    #     asm_instrs = [opargs for line in file if (opargs := parse_asm(line))]
-    #
-    # instrs = map(asm2instr, asm_instrs)
-    # for instr in instrs:
-    #     print("")
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
+    def print_in_box(text: str):
+        print(f"+{'-' * (len(text) + 2)}+")
+        print(f"| {text} |")
+        print(f"+{'-' * (len(text) + 2)}+")
+
+    print_in_box("pyrv: RISC-V instruction set simulator")
+    elf = compile_sourcefile(Path("."), "simexit.S")
+
+    load_elf(elf)
     return 0
 
 
