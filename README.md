@@ -3,7 +3,8 @@
 `pyrv` is an instruction set simulator (ISS) for the RISC-V ISA.
 
 An ISS provides a non-cycle accurate functional model of a CPU core. `pyrv`
-models RISC-V hardware threads (harts) of a particular RISC-V ISA version.
+simulates the operation of RISC-V hardware threads (harts) of a particular
+RISC-V ISA version.
 
 The aim of `pyrv` is to model a resource-constrained bare metal environment,
 with simulated on-board flash memory and SRAM. This means, for example, that
@@ -23,13 +24,16 @@ RISC-V International.
 
 ## Getting started
 
-`pyrv` exposes a CLI, which is available once the package is installed. You can
-install `pyrv` system-wide or in a virtual environment by running
-`pip install .` in a cloned version of this repository.
+`pyrv` exposes a CLI as part of its package. To access it, install `pyrv`
+system-wide or in a virtual environment by running `pip install .` in a cloned
+version of this repository.
 
 A simple demo:
 
 ## Development
+
+`pyrv` is designed to be accessible for development, with useful docstrings and
+type hints included in the source code.
 
 Dependencies are managed with [uv](https://docs.astral.sh/uv/). You can consult
 the `pyproject.toml` for more detail on `pyrv`'s dependencies.
@@ -40,12 +44,13 @@ To run the tests:
 uv run pytest
 ```
 
-> [!WARNING] You need a working set of the GNU Compiler Toolchain for RISC-V,
-> built specifically for the ISA you are targeting. It doesn't matter if you
-> specify `-march`; if your compiler isn't built for it, it won't work!
+A commit to master must pass all these tests; there is robust CI infrastructure
+in place to verify this.
 
-There is robust CI infrastructure in place to run all tests on each pull request
-/ commit to master.
+> [!NOTE]
+>
+> You need a working set of binutils from the GNU Compiler Toolchain for RISC-V,
+> built specifically to support the ISA you are targeting.
 
 To run lint:
 

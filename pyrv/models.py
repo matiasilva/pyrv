@@ -192,24 +192,15 @@ class SystemBus:
 
     def __init__(self, hart: "Hart"):
         self._hart = hart
-
-    def _check_addr(self, addr: int, n: int):
-        if (n & (n - 1) != 0) or n == 0:
-            raise AddressMisalignedException
-        if addr % n != 0:
-            raise AddressMisalignedException
-        # check addr beyond range
-        if addr > self._contents.size:
-            raise AccessFaultException
+        self._slave_ports = {}
 
     def write(self, addr: int, data: int, n: int):
         pass
 
     def read(self, addr: int, n: int) -> int:
         """Read `n` bytes from the system bus"""
-        port = self.get_port(addr, n)
-        self._check_addr(addr, n)
-        return port.read(addr, n)
+        peripheral = self.get_peripheral(addr, n)
+        return peripheral.read(addr, n)
 
     def addr2port(self, addr: int) -> InstructionMemory | DataMemory | SimControl:
         """
@@ -227,44 +218,54 @@ class SystemBus:
         else:
             raise AccessFaultException
 
-    def add_peripheral(self, name: str, start_addr: int, size: int, peripheral=None):
+    def add_slave_port(
+        self, name: str, start_addr: int, size: int, peripheral: Peripheral
+    ):
         """
-        Add a peripheral to the address map.
+        Add a slave port to the address map.
+
+        A slave port links together the notion of an address range and a peripheral.
+        A peripheral implements read/write methods while an address range designates a
+        region of the system address space to this peripheral.
+
         Args:
-            name: Identifier for the peripheral
+            name: Identifier for the peripheral, purely informative
             start_addr: Base address
             size: Size in bytes
-            peripheral: Optional reference to peripheral object
+            peripheral: Reference to peripheral object
         """
         new_range = AddressRange(start_addr, size)
 
-        # Check for overlaps with existing peripherals
-        for existing_name, (existing_range, _) in self.peripherals.items():
+        # check for overlaps with existing peripherals
+        for existing_name, (existing_range, _) in self._slave_ports.items():
             if new_range.overlaps(existing_range):
                 raise ValueError(
                     f"Address range 0x{start_addr:x}-0x{start_addr + size - 1:x} "
                     f"overlaps with existing peripheral {existing_name}"
                 )
 
-        self.peripherals[name] = (new_range, peripheral)
+        self._slave_ports[name] = (new_range, peripheral)
 
-    def check_access(self, addr: int, n_bytes: int) -> Peripheral:
+    def check_access(self, addr: int, n_bytes: int) -> Peripheral | None:
         """
         Check if an access to address + n_bytes is valid.
 
         Validity checks:
             - n_bytes must be a power of 2
             - alignment of `addr` on an `n_bytes` boundary
-            - addr + n_bytes is contained in the address map
+            - addr maps onto a valid peripheral
+            - addr + n_bytes is within a peripheral's address range
 
         Returns:
             A valid peripheral if an address is valid, else None
         """
-        for name, (addr_range, peripheral) in self.peripherals.items():
+        if (n_bytes & (n_bytes - 1) != 0) or n_bytes == 0:
+            raise AddressMisalignedException
+        if addr % n_bytes != 0:
+            raise AddressMisalignedException
+        for _, (addr_range, peripheral) in self._slave_ports.items():
             if addr_range.contains(addr, n_bytes):
-                return True, name, peripheral
-
-        return False, None, None
+                return peripheral
 
     def get_peripheral(self, addr: int, n_bytes: int = 1) -> Peripheral:
         """
