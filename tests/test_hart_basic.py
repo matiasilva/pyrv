@@ -12,3 +12,8 @@ def test_sim_control(build_dir):
     with open(elf, "rb") as f:
         elf_file = ELFFile(f)
         print(elf_file.header.e_entry)
+
+
+def test_load(build_dir):
+    # compile test
+    pass

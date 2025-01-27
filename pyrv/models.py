@@ -14,7 +14,7 @@ from pyrv.helpers import (
 )
 
 if TYPE_CHECKING:
-    from pyrv.harts import Hart
+    from pyrv.harts import BasicHart, Hart
 
 
 class RegisterFile:
@@ -82,49 +82,6 @@ class RegisterFile:
 type Address = int | Register
 
 
-class SystemBus:
-    """
-    Dispatches load/store instructions
-
-    A load/store instruction moves data to/from registers and
-    ports (memory + peripherals) on the system address map
-    """
-
-    def __init__(self, hart: "Hart"):
-        self._hart = hart
-
-    def _check_addr(self, addr: int, n: int):
-        if (n & (n - 1) != 0) or n == 0:
-            raise AddressMisalignedException
-        if addr % n != 0:
-            raise AddressMisalignedException
-
-    def write(self, addr: int, data: int, n: int):
-        pass
-
-    def read(self, addr: int, n: int) -> int:
-        """Read `n` bytes from the system bus"""
-        port = self.addr2port(addr)
-        self._check_addr(addr, n)
-        return port.read(addr, n)
-
-    def addr2port(self, addr: int):
-        """
-        Map an address to a memory-mapped device port.
-
-        This is in effect the bus fabric.
-        """
-
-        if 0 <= addr < 0x0200_0000:
-            return self._hart.instruction_memory
-        elif 0x0200_0000 <= addr < 0x0800_0000:
-            return self._hart.data_memory
-        elif 0xFFFF_FFEF <= addr < 0xFFFF_FFFF:
-            return self._hart.sim_control
-        else:
-            raise AccessFaultException
-
-
 class InstructionMemory:
     def __init__(self):
         self.SIZE = 2 * 1024
@@ -135,7 +92,7 @@ class InstructionMemory:
         if addr > self._contents.size:
             raise AccessFaultException
 
-    def read(self, addr: int, n: int) -> tuple:
+    def read(self, addr: int, n: int) -> numpy.ndarray:
         """Read `n` words from the memory starting at address `addr`"""
         self._check_addr(addr, 4)
         return self._contents[addr : addr + 4]
@@ -159,7 +116,7 @@ class DataMemory:
         self._check_addr(addr, n)
         self._contents[addr : addr + n] = data
 
-    def read(self, addr: int, n: int) -> tuple:
+    def read(self, addr: int, n: int) -> numpy.ndarray:
         """Read `n` bytes from the memory starting at address `addr`"""
         self._check_addr(addr, n)
         return self._contents[addr : addr + n]
@@ -176,3 +133,46 @@ class SimControl:
 
     def write(self, addr: int, data: int, n: int):
         pass
+
+
+class SystemBus:
+    """
+    Dispatches load/store instructions
+
+    A load/store instruction moves data to/from registers and
+    ports (memory + peripherals) on the system address map
+    """
+
+    def __init__(self, hart: "BasicHart"):
+        self._hart = hart
+
+    def _check_addr(self, addr: int, n: int):
+        if (n & (n - 1) != 0) or n == 0:
+            raise AddressMisalignedException
+        if addr % n != 0:
+            raise AddressMisalignedException
+
+    def write(self, addr: int, data: int, n: int):
+        pass
+
+    def read(self, addr: int, n: int) -> int:
+        """Read `n` bytes from the system bus"""
+        port = self.addr2port(addr)
+        self._check_addr(addr, n)
+        return port.read(addr, n)
+
+    def addr2port(self, addr: int) -> InstructionMemory | DataMemory | SimControl:
+        """
+        Map an address to a memory-mapped device port.
+
+        This is in effect the bus fabric.
+        """
+
+        if 0 <= addr < 0x0200_0000:
+            return self._hart.instruction_memory
+        elif 0x0200_0000 <= addr < 0x0800_0000:
+            return self._hart.data_memory
+        elif 0xFFFF_FFEF <= addr < 0xFFFF_FFFF:
+            return self._hart.sim_control
+        else:
+            raise AccessFaultException
