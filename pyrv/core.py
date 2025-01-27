@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from pyrv.harts import BasicHart
+from pyrv.harts import Hart
 from tests.helpers import compile_sourcefile
 
 
@@ -15,7 +15,7 @@ def main() -> int:
 
     print_in_box("pyrv: RISC-V instruction set simulator")
     elf = compile_sourcefile(Path("."), "simexit.S")
-    hart = BasicHart()
+    hart = Hart()
     hart.load(elf)
     return 0
 

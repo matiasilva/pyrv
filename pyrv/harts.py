@@ -15,28 +15,14 @@ from pathlib import Path
 
 class Hart:
     """
-    Barebones hart used for tests where a full system bus and memories are unnecessary
-    """
-
-    def __init__(self) -> None:
-        self.pc: MutableRegister = MutableRegister()
-        self.register_file: RegisterFile = RegisterFile()
-        self.data_memory: DataMemory | None = None
-        self.instruction_memory: InstructionMemory | None = None
-        self.system_bus: SystemBus | None = None
-        self.sim_control: SimControl | None = None
-
-        self.rf = self.register_file  # alias
-
-
-class BasicHart(Hart):
-    """
     A hart containing the minimum necessary components for code execution.
     """
 
     def __init__(self):
-        super().__init__()
-        # this should really be inside a SoC object
+        self.pc: MutableRegister = MutableRegister()
+        self.register_file: RegisterFile = RegisterFile()
+        self.rf = self.register_file  # alias
+
         self.system_bus = SystemBus(self)
 
         # memories

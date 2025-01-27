@@ -14,7 +14,7 @@ from pyrv.helpers import (
 )
 
 if TYPE_CHECKING:
-    from pyrv.harts import BasicHart, Hart
+    from pyrv.harts import Hart
 
 
 class RegisterFile:
@@ -143,7 +143,7 @@ class SystemBus:
     ports (memory + peripherals) on the system address map
     """
 
-    def __init__(self, hart: "BasicHart"):
+    def __init__(self, hart: "Hart"):
         self._hart = hart
 
     def _check_addr(self, addr: int, n: int):
