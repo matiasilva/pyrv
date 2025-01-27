@@ -3,19 +3,31 @@
 `pyrv` is an instruction set simulator (ISS) for the RISC-V ISA.
 
 An ISS provides a non-cycle accurate functional model of a CPU core. `pyrv`
-models RISC-V harts, meeting particular RISC-V ISA versions. There is an
-[official simulator](https://github.com/riscv-software-src/riscv-isa-sim) called
-Spike from RISC-V International, which is much more feature-rich and should be
-used for any official work.
+models RISC-V hardware threads (harts) of a particular RISC-V ISA version.
+
+The aim of `pyrv` is to model a resource-constrained bare metal environment,
+with simulated on-board flash memory and SRAM. This means, for example, that
+`ecall`s are not supported and instead the processor must interact with the host
+through the simulator. For OS-level RISC-V work, use the official RISC-V ISA
+simulator [Spike](https://github.com/riscv-software-src/riscv-isa-sim) from
+RISC-V International.
 
 ## Features
 
 - RV32I Base Integer ISA support, v2.1
-- `.elf` and assembly support
-- flexible types make future ISA support easy
-- little endian
+- C runtime support
+- loads native ELF files or binary files
+- optimizes performance with numpy integration
+- flexible and reusable types simplifies future ISA support
+- mix-and-match peripherals to build a custom Hart
 
 ## Getting started
+
+`pyrv` exposes a CLI, which is available once the package is installed. You can
+install `pyrv` system-wide or in a virtual environment by running
+`pip install .` in a cloned version of this repository.
+
+A simple demo:
 
 ## Development
 
@@ -28,8 +40,7 @@ To run the tests:
 uv run pytest
 ```
 
-> [!WARNING]
-> You need a working set of the GNU Compiler Toolchain for RISC-V,
+> [!WARNING] You need a working set of the GNU Compiler Toolchain for RISC-V,
 > built specifically for the ISA you are targeting. It doesn't matter if you
 > specify `-march`; if your compiler isn't built for it, it won't work!
 

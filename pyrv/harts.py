@@ -1,6 +1,11 @@
+from pathlib import Path
+
 from elftools.elf.constants import P_FLAGS
 from elftools.elf.elffile import ELFFile
+
+from pyrv.adapters import check_elf
 from pyrv.helpers import MutableRegister
+from pyrv.instructions import decode_instr
 from pyrv.models import (
     DataMemory,
     InstructionMemory,
@@ -8,9 +13,6 @@ from pyrv.models import (
     SimControl,
     SystemBus,
 )
-from pyrv.instructions import decode_instr
-from pyrv.adapters import check_elf
-from pathlib import Path
 
 
 class Hart:
@@ -60,3 +62,5 @@ class Hart:
             for seg in elf_file.iter_segments("PT_LOAD"):
                 if seg["p_flags"] & P_FLAGS.PF_X:
                     self.instruction_memory.load(seg.data())
+                else:
+                    self.data_memory.load(seg.data())

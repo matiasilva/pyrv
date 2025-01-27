@@ -5,6 +5,7 @@ Contains models of different hardware blocks, including the Hart.
 from typing import TYPE_CHECKING
 
 import numpy
+import numpy.typing as npt
 
 from pyrv.helpers import (
     AccessFaultException,
@@ -79,50 +80,80 @@ class RegisterFile:
         return self[attr]
 
 
-type Address = int | Register
+class Peripheral:
+    pass
 
 
-class InstructionMemory:
-    def __init__(self):
-        self.SIZE = 2 * 1024
-        """The size of the memory in kiB"""
-        self._contents = numpy.zeros(self.SIZE * 1024, numpy.uint8)
+class Memory(Peripheral):
+    """Generic Memory class, implementing a few basic methods"""
 
-    def _check_addr(self, addr: int, n: int) -> None:
-        if addr > self._contents.size:
-            raise AccessFaultException
+    def __init__(self, size: int, width: int = 1):
+        """
+        Initializes the Memory class with size and width args.
 
-    def read(self, addr: int, n: int) -> numpy.ndarray:
-        """Read `n` words from the memory starting at address `addr`"""
-        self._check_addr(addr, 4)
-        return self._contents[addr : addr + 4]
+        Args:
+            size: the size of the memory in KiB
+            width: the width of the memory in multiples of bytes
+        """
+        self._size = size
+        """The size of the memory in KiB"""
 
-    def load(self, data: bytes, offset=0) -> None:
-        self._contents[: len(data)] = memoryview(data)
+        match width:
+            case 4:
+                dtype = numpy.uint32
+            case 1:
+                dtype = numpy.uint8
+            case _:
+                raise ValueError("Unsupported memory size")
+        self._contents: npt.NDArray = numpy.zeros(self._size * 1024, dtype)
+        """Internal container for our memory"""
 
-
-class DataMemory:
-    def __init__(self):
-        self.SIZE = 6 * 1024
-        """The size of the memory in kiB"""
-        self._contents = numpy.zeros(self.SIZE * 1024, numpy.uint8)
-
-    def _check_addr(self, addr: int, n: int) -> None:
-        if addr > self._contents.size:
-            raise AccessFaultException
-
-    def write(self, addr: int, data: int, n: int) -> None:
-        """Write `n` bytes of `data` to the memory starting at address `addr`"""
-        self._check_addr(addr, n)
-        self._contents[addr : addr + n] = data
-
-    def read(self, addr: int, n: int) -> numpy.ndarray:
-        """Read `n` bytes from the memory starting at address `addr`"""
-        self._check_addr(addr, n)
+    def _read(self, addr: int, n: int) -> npt.NDArray:
+        """Read `n` bytes from the memory, starting at address `addr`"""
         return self._contents[addr : addr + n]
 
+    def _write_bytes(self, addr: int, data: bytes) -> None:
+        """Write `data` bytes to memory, starting at address `addr`"""
+        self._contents[addr : addr + len(data)] = memoryview(data)
 
-class SimControl:
+    def _write(self, addr: int, data: int, n: int) -> None:
+        """Write `n` bytes from `data` into memory, starting at address `addr`"""
+        self._write_bytes(addr, data.to_bytes(n, byteorder="little"))
+
+    # AHB-like intf
+    def read_byte(self, addr: int):
+        return self._read(addr, 1)
+
+    def read_halfword(self, addr: int):
+        return self._read(addr, 2)
+
+    def read_word(self, addr: int):
+        return self._read(addr, 4)
+
+    def read_burst(self, addr: int, burst_size: int, beat_count: int):
+        return self._read(addr, burst_size * beat_count)
+
+    def write_byte(self, addr: int, data: int):
+        return self._write(addr, data, 1)
+
+    def write_halfword(self, addr: int, data: int):
+        return self._write(addr, data, 2)
+
+    def write_word(self, addr: int, data: int):
+        return self._write(addr, data, 4)
+
+
+class InstructionMemory(Memory):
+    def __init__(self):
+        super().__init__(2 * 1024, 4)
+
+
+class DataMemory(Memory):
+    def __init__(self):
+        super().__init__(6 * 1024, 4)
+
+
+class SimControl(Peripheral):
     """Controls interaction with the simulator, like stopping the simulation"""
 
     def __init__(self) -> None:
@@ -133,6 +164,22 @@ class SimControl:
 
     def write(self, addr: int, data: int, n: int):
         pass
+
+
+class AddressRange:
+    def __init__(self, start: int, size: int):
+        self.start = start
+        self.end = start + size - 1
+        self.size = size
+
+    def contains(self, addr: int, n_bytes: int = 1) -> bool:
+        """Check if an address + n_bytes falls within this AddressRange"""
+        access_end = addr + n_bytes - 1
+        return self.start <= addr and access_end <= self.end
+
+    def overlaps(self, other: "AddressRange") -> bool:
+        """Check if this range overlaps with another range"""
+        return not (self.end < other.start or other.end < self.start)
 
 
 class SystemBus:
@@ -151,13 +198,16 @@ class SystemBus:
             raise AddressMisalignedException
         if addr % n != 0:
             raise AddressMisalignedException
+        # check addr beyond range
+        if addr > self._contents.size:
+            raise AccessFaultException
 
     def write(self, addr: int, data: int, n: int):
         pass
 
     def read(self, addr: int, n: int) -> int:
         """Read `n` bytes from the system bus"""
-        port = self.addr2port(addr)
+        port = self.get_port(addr, n)
         self._check_addr(addr, n)
         return port.read(addr, n)
 
@@ -176,3 +226,57 @@ class SystemBus:
             return self._hart.sim_control
         else:
             raise AccessFaultException
+
+    def add_peripheral(self, name: str, start_addr: int, size: int, peripheral=None):
+        """
+        Add a peripheral to the address map.
+        Args:
+            name: Identifier for the peripheral
+            start_addr: Base address
+            size: Size in bytes
+            peripheral: Optional reference to peripheral object
+        """
+        new_range = AddressRange(start_addr, size)
+
+        # Check for overlaps with existing peripherals
+        for existing_name, (existing_range, _) in self.peripherals.items():
+            if new_range.overlaps(existing_range):
+                raise ValueError(
+                    f"Address range 0x{start_addr:x}-0x{start_addr + size - 1:x} "
+                    f"overlaps with existing peripheral {existing_name}"
+                )
+
+        self.peripherals[name] = (new_range, peripheral)
+
+    def check_access(self, addr: int, n_bytes: int) -> Peripheral:
+        """
+        Check if an access to address + n_bytes is valid.
+
+        Validity checks:
+            - n_bytes must be a power of 2
+            - alignment of `addr` on an `n_bytes` boundary
+            - addr + n_bytes is contained in the address map
+
+        Returns:
+            A valid peripheral if an address is valid, else None
+        """
+        for name, (addr_range, peripheral) in self.peripherals.items():
+            if addr_range.contains(addr, n_bytes):
+                return True, name, peripheral
+
+        return False, None, None
+
+    def get_peripheral(self, addr: int, n_bytes: int = 1) -> Peripheral:
+        """
+        Get the peripheral at address `addr` in the system address map.
+
+        The access occurs at address `addr` and has an extent of `n_bytes`. If this
+        access is invalid, then no peripheral is returned.
+
+        Returns:
+            A peripheral object if the access is valid, else None
+        """
+        peripheral = self.check_access(addr, n_bytes)
+        if not peripheral:
+            raise AccessFaultException(f"No peripheral at address 0x{addr:x}")
+        return peripheral
