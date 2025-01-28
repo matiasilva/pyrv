@@ -96,6 +96,16 @@ def se(value: int, bits: int = 32) -> int:
     return (value ^ sign_bit) - sign_bit
 
 
+def bselect(bits: int, msb: int, lsb: int, shift: int = 0) -> int:
+    """
+    Return the int obtained by slicing `bits` from `msb` to `lsb`, optionally
+    shifiting left by `shift`.
+    """
+    s = msb - lsb + 1
+    mask = (1 << s) - 1
+    return (mask & bits >> lsb) << shift
+
+
 class AddressMisalignedException(Exception):
     pass
 

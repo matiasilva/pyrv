@@ -61,6 +61,8 @@ class Hart:
             check_elf(elf_file)
             for seg in elf_file.iter_segments("PT_LOAD"):
                 if seg["p_flags"] & P_FLAGS.PF_X:
-                    self.instruction_memory.load(seg.data())
+                    self.instruction_memory._write_bytes(
+                        seg.get_table_offsetseg.data()
+                    )  # get offset
                 else:
                     self.data_memory.load(seg.data())

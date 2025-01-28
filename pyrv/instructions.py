@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, TypedDict, TypeVar, get_args
 
-from pyrv.helpers import InvalidInstructionError, se
+from pyrv.helpers import InvalidInstructionError, se, bselect
 from pyrv.models import RegisterFile
 
 if TYPE_CHECKING:
@@ -601,16 +601,6 @@ class And(Instruction[RType]):
 
     def exec(self, hart: "Hart") -> None:
         hart.rf[self.rd] = hart.rf[self.rs1] & hart.rf[self.rs2]
-
-
-def bselect(bits: int, msb: int, lsb: int, shift: int = 0) -> int:
-    """
-    Return the int obtained by slicing `bits` from `msb` to `lsb`, optionally
-    shifiting left by `shift`.
-    """
-    s = msb - lsb + 1
-    mask = (1 << s) - 1
-    return (mask & bits >> lsb) << shift
 
 
 def decode_instr(instr: int) -> Instruction:
