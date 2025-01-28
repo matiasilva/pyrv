@@ -18,7 +18,6 @@ RISC-V International.
 - RV32I Base Integer ISA support, v2.1
 - C runtime support
 - loads native ELF files or binary files
-- optimizes performance with numpy integration
 - flexible and reusable types simplifies future ISA support
 - mix-and-match peripherals to build a custom Hart
 

@@ -2,6 +2,7 @@
 Contains models of different hardware blocks, including the Hart.
 """
 
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 import numpy
@@ -80,7 +81,72 @@ class RegisterFile:
         return self[attr]
 
 
-class Peripheral:
+class Addressable(ABC):
+    @abstractmethod
+    def read_byte(self, addr: int) -> int:
+        """
+        Read a byte from the peripheral.
+
+        If the peripheral is a memory, accesses of narrower width than the memory's
+        contents return unknown data.
+        """
+        ...
+
+    @abstractmethod
+    def read_halfword(self, addr: int) -> int:
+        """
+        Read a halfword from the peripheral.
+
+        If the peripheral is a memory, accesses of narrower width than the memory's
+        contents return unknown data.
+        """
+        ...
+
+    @abstractmethod
+    def read_word(self, addr: int) -> int:
+        """
+        Read a word from the peripheral.
+
+        If the peripheral is a memory, accesses of narrower width than the memory's
+        contents return unknown data.
+        """
+        ...
+
+    # def read_burst(self, addr: int, burst_size: int, beat_count: int):
+    #     return self._read(addr, burst_size * beat_count)
+
+    @abstractmethod
+    def write_byte(self, addr: int, data: int) -> None:
+        """
+        Write a byte to the peripheral.
+
+        If the peripheral is a memory, writes of narrower width than the memory's
+        contents will write to invalid locations.
+        """
+        ...
+
+    @abstractmethod
+    def write_halfword(self, addr: int, data: int) -> None:
+        """
+        Write a halfword to the peripheral.
+
+        If the peripheral is a memory, writes of narrower width than the memory's
+        contents will write to invalid locations.
+        """
+        ...
+
+    @abstractmethod
+    def write_word(self, addr: int, data: int) -> None:
+        """
+        Write a word to the peripheral.
+
+        If the peripheral is a memory, writes of narrower width than the memory's
+        contents will write to invalid locations.
+        """
+        ...
+
+
+class Peripheral(Addressable):
     pass
 
 
@@ -117,30 +183,32 @@ class Memory(Peripheral):
         self._contents[addr : addr + len(data)] = memoryview(data)
 
     def _write(self, addr: int, data: int, n: int) -> None:
-        """Write `n` bytes from `data` into memory, starting at address `addr`"""
+        """
+        Write `data` into memory, interpreting `data` as an `n`-byte integer,
+        starting at address `addr`
+        """
         self._write_bytes(addr, data.to_bytes(n, byteorder="little"))
 
-    # AHB-like intf
-    def read_byte(self, addr: int):
-        return self._read(addr, 1)
+    def read_byte(self, addr):
+        return self._read(addr, 1).astype(numpy.uint8).item(0)
 
-    def read_halfword(self, addr: int):
-        return self._read(addr, 2)
+    def read_halfword(self, addr):
+        return self._read(addr, 2).astype(numpy.uint16).item(0)
 
-    def read_word(self, addr: int):
-        return self._read(addr, 4)
+    def read_word(self, addr):
+        return self._read(addr, 4).astype(numpy.uint32).item(0)
 
-    def read_burst(self, addr: int, burst_size: int, beat_count: int):
-        return self._read(addr, burst_size * beat_count)
-
-    def write_byte(self, addr: int, data: int):
+    def write_byte(self, addr, data):
         return self._write(addr, data, 1)
 
-    def write_halfword(self, addr: int, data: int):
+    def write_halfword(self, addr, data):
         return self._write(addr, data, 2)
 
-    def write_word(self, addr: int, data: int):
+    def write_word(self, addr, data):
         return self._write(addr, data, 4)
+
+    def read_burst(self, addr, burst_size, beat_count):
+        return self._read(addr, burst_size * beat_count)
 
 
 class InstructionMemory(Memory):
@@ -157,12 +225,6 @@ class SimControl(Peripheral):
     """Controls interaction with the simulator, like stopping the simulation"""
 
     def __init__(self) -> None:
-        pass
-
-    def read(self, addr: int, n: int):
-        pass
-
-    def write(self, addr: int, data: int, n: int):
         pass
 
 
@@ -182,7 +244,7 @@ class AddressRange:
         return not (self.end < other.start or other.end < self.start)
 
 
-class SystemBus:
+class SystemBus(Addressable):
     """
     Dispatches load/store instructions
 
@@ -194,29 +256,24 @@ class SystemBus:
         self._hart = hart
         self._slave_ports = {}
 
-    def write(self, addr: int, data: int, n: int):
-        pass
+    # read-write interface
+    def read_byte(self, addr):
+        return self.get_peripheral(addr, 1).read_byte(addr)
 
-    def read(self, addr: int, n: int) -> int:
-        """Read `n` bytes from the system bus"""
-        peripheral = self.get_peripheral(addr, n)
-        return peripheral.read(addr, n)
+    def read_halfword(self, addr):
+        return self.get_peripheral(addr, 2).read_halfword(addr)
 
-    def addr2port(self, addr: int) -> InstructionMemory | DataMemory | SimControl:
-        """
-        Map an address to a memory-mapped device port.
+    def read_word(self, addr):
+        return self.get_peripheral(addr, 4).read_word(addr)
 
-        This is in effect the bus fabric.
-        """
+    def write_byte(self, addr, data):
+        return self.get_peripheral(addr, 1).write_byte(addr, data)
 
-        if 0 <= addr < 0x0200_0000:
-            return self._hart.instruction_memory
-        elif 0x0200_0000 <= addr < 0x0800_0000:
-            return self._hart.data_memory
-        elif 0xFFFF_FFEF <= addr < 0xFFFF_FFFF:
-            return self._hart.sim_control
-        else:
-            raise AccessFaultException
+    def write_halfword(self, addr, data):
+        return self.get_peripheral(addr, 2).write_halfword(addr, data)
+
+    def write_word(self, addr, data):
+        return self.get_peripheral(addr, 4).write_word(addr, data)
 
     def add_slave_port(
         self, name: str, start_addr: int, size: int, peripheral: Peripheral
@@ -279,5 +336,7 @@ class SystemBus:
         """
         peripheral = self.check_access(addr, n_bytes)
         if not peripheral:
-            raise AccessFaultException(f"No peripheral at address 0x{addr:x}")
+            raise AccessFaultException(
+                f"No peripheral for access of {n_bytes} at address 0x{addr:x}"
+            )
         return peripheral

@@ -5,10 +5,9 @@ parse input data and output pyrv instruction objects
 
 import logging
 import re
-from pathlib import Path
 
-from elftools.elf.elffile import ELFFile
 import elftools.elf.descriptions as elf_desc
+from elftools.elf.elffile import ELFFile
 
 from pyrv.helpers import InvalidInstructionError, UnsupportedExecutableError
 from pyrv.instructions import (
