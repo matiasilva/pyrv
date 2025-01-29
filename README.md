@@ -3,7 +3,7 @@
 `pyrv` is an instruction set simulator (ISS) for the RISC-V ISA.
 
 An ISS provides a non-cycle accurate functional model of a CPU core. `pyrv`
-simulates the operation of RISC-V hardware threads (harts) that conform to
+simulates the operation of RISC-V hardware threads (harts) conforming to
 a particular RISC-V ISA version.
 
 The aim of `pyrv` is to model a resource-constrained bare metal environment,
