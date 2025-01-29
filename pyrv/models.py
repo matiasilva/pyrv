@@ -3,8 +3,8 @@ Contains models of different hardware blocks, including the Hart.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, NamedTuple
+from collections.abc import Callable
 
 import numpy
 import numpy.typing as npt
@@ -187,18 +187,35 @@ class SimControl(Peripheral):
     def __init__(self) -> None:
         self._word_size = 8
         self._byte_size = self._word_size << 2
+        assert self._word_size < 256  # only 255 values allowed, 0 reserved
         self._register_values = numpy.zeros(self._word_size, dtype=numpy.uint32)
-        self._register_map = numpy.zeros(self._word_size, dtype=numpy.uint8)
+        self._register_lookup = numpy.zeros(self._word_size, dtype=numpy.uint8)
         """0 is a sentinel value, offset all indices by 1 and decode accordingly"""
+        self._triggers = {}
+        """the trigger registry"""
 
-    def add_register(self):
+        self.alloc_register(0x0)
+
+    def get_key(self, addr: int) -> int:
+        key = self._register_lookup[addr >> 2]
+        if key == 0:
+            raise AccessFaultException
+        return key
+
+    def alloc_register(self, addr: int) -> int:
+        next_idx = self._register_lookup.max() + 1
+        if self._register_lookup[addr >> 2] != 0:
+            raise ValueError("Register already allocated at that byte address!")
+        else:
+            self._register_lookup[addr >> 2] = next_idx
+        return next_idx
+
+    def set_register(self, addr: int, val: int) -> None:
         pass
 
     def read(self, addr: int, n_bytes: int) -> int:
-        key = self._register_map[addr >> 2]
-        if key == 0:
-            raise AccessFaultException
-        value = self._register_values.item(key)
+        key = self.get_key(addr)
+        value = self._register_values.item(key - 1)
         match n_bytes:
             case 1:
                 shift = (addr & 3) << 3
@@ -210,7 +227,53 @@ class SimControl(Peripheral):
                 return value
 
     def write(self, addr: int, data: int, n_bytes: int):
-        pass
+        """
+        Write `n_bytes` of `data` to the correct byte lanes. Data is taken
+        from the lower bits.
+
+        Example: a byte write of data takes the lowest 8 bits and writes them
+        to the byte lane implied by the address.
+        """
+        key = self.get_key(addr)
+        old_value = self._register_values[key]
+
+        mask = 1 << (n_bytes * 8) - 1
+        lane = addr & 0xFF
+        value = (data & mask) << lane
+        mask <<= addr & lane  # move mask to correct byte lane
+        # clear and set new value
+        self._register_values[key] = old_value & ~mask | value
+
+        for (trigger_addr, test_func), callback in self._triggers.items():
+            if trigger_addr == addr and test_func(value, old_value):
+                callback(value, old_value)
+
+    def add_trigger(
+        self,
+        addr: int,
+        test_func: Callable[[int, int], bool],
+        callback: Callable[[int, int], None],
+    ):
+        """
+        Attach a callback function to a register that is called when a triggering
+        condition is met.
+
+        Some triggering conditions that could be used:
+            - `lambda new, old: new & BIT_MASK` to see if a bit is set
+            - `lambda new, old: (new & BIT_MASK) and not (old & BIT_MASK)` transition
+            - `lambda new, old: new == TARGET_VALUE`
+            - `lambda new, old: MIN_VALUE <= new <= MAX_VALUE` for a value in a range
+            - `lambda new, old: new != old`
+            - `lambda new, old: True` always trigger
+
+        Args:
+            addr: byte address of register to watch, this is internally decoded
+            to the correct register index in the lookup table
+            test_func: a function that takes two args, `new` and `old`, and compares
+            them
+            callback: a function to call when trigger condition is met
+        """
+        self._triggers[(addr, test_func)] = callback
 
 
 class AddressRange:
