@@ -3,8 +3,8 @@
 `pyrv` is an instruction set simulator (ISS) for the RISC-V ISA.
 
 An ISS provides a non-cycle accurate functional model of a CPU core. `pyrv`
-simulates the operation of RISC-V hardware threads (harts) conforming to
-a particular RISC-V ISA version.
+simulates the operation of RISC-V hardware threads (harts) conforming to a
+particular RISC-V ISA version.
 
 The aim of `pyrv` is to model a resource-constrained bare metal environment,
 with simulated on-board flash memory and SRAM. This means, for example, that
@@ -19,12 +19,13 @@ RISC-V International.
 - C runtime support
 - loads native ELF files or binary files
 
-Under the hood, `pyrv` lays the groundwork for streamlined future ISA support 
-with flexible and reusable components. Since no CPU exists in isolation, there are
-also SoC-level compoennts (SystemBus, Memory, Peripheral, and so on) that allow you
-to mix-and-match peripherals to build a custom Hart.
+Under the hood, `pyrv` lays the groundwork for streamlined future ISA support
+with flexible and reusable components. Since no CPU exists in isolation, there
+are also SoC-level compoennts (SystemBus, Memory, Peripheral, and so on) that
+allow you to mix-and-match peripherals to build a custom Hart.
 
-typical Peripheral with registers and a declarative API to trigger callbacks on specific field changes.
+typical Peripheral with registers and a declarative API to trigger callbacks on
+specific field changes.
 
 ## Getting started
 
@@ -79,12 +80,12 @@ Matias Wang Silva, 2025
 
 ## TODO
 
-- [] Check against standard RISC-V tests:
-  <https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof>
-- [] Add tests for load/stores
-- [] Add tests for system bus and reads/writes of all widths
-- [] Add tests for memories
-- [] Add tests for SimControl
-- [] Wrap printf, implement exit functionality, propagate exit code
-- [] Add tests for branches, jumps and so on
-- [] Get basic simexit, hello world, and load into memory programs working
+- [ ] Check against standard RISC-V tests:
+      <https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof>
+- [ ] Add tests for load/stores
+- [ ] Add tests for system bus and reads/writes of all widths
+- [ ] Add tests for memories
+- [ ] Add tests for SimControl
+- [ ] Wrap printf, implement exit functionality, propagate exit code
+- [ ] Add tests for branches, jumps and so on
+- [ ] Get basic simexit, hello world, and load into memory programs working
