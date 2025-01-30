@@ -79,4 +79,12 @@ Matias Wang Silva, 2025
 
 ## TODO
 
-<https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof>
+- [] Check against standard RISC-V tests:
+  <https://github.com/sysprog21/rv32emu?tab=readme-ov-file#riscof>
+- [] Add tests for load/stores
+- [] Add tests for system bus and reads/writes of all widths
+- [] Add tests for memories
+- [] Add tests for SimControl
+- [] Wrap printf, implement exit functionality, propagate exit code
+- [] Add tests for branches, jumps and so on
+- [] Get basic simexit, hello world, and load into memory programs working
