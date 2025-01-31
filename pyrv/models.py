@@ -3,8 +3,8 @@ Contains models of different hardware blocks, including the Hart.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, NamedTuple
 from collections.abc import Callable
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy
 import numpy.typing as npt
@@ -175,13 +175,24 @@ class DataMemory(Memory):
         super().__init__(6 * 1024)
 
 
+class UnallocatedAddressException(Exception):
+    pass
+
+
+class TriggerKey(NamedTuple):
+    addr: int
+    test_func: Callable[[int, int], bool]
+
+
 class SimControl(Peripheral):
     """
     Controls interaction with the simulator, like stopping the simulation.
 
     An incoming byte address is mapped to a word address, which is then used to look up
     the index of the register value. The index is a location in the `_register_values`
-    array. There is a memory usage penalty to pay for the O(1) lookup complexity.
+    array. There is a memory usage penalty to pay for the O(1) lookup complexity. But
+    as Amdahl's law says: make the common case fast! Register lookups are far more
+    common than allocation.
     """
 
     def __init__(self) -> None:
@@ -191,30 +202,38 @@ class SimControl(Peripheral):
         self._register_values = numpy.zeros(self._word_size, dtype=numpy.uint32)
         self._register_lookup = numpy.zeros(self._word_size, dtype=numpy.uint8)
         """0 is a sentinel value, offset all indices by 1 and decode accordingly"""
-        self._triggers = {}
-        """the trigger registry"""
+        self._triggers: dict[TriggerKey, Callable] = {}
+        """Indexes triggers using a tuple of address and test function"""
 
-        self.alloc_register(0x0)
+        self.set_register(0x0, 0x0)
 
-    def get_key(self, addr: int) -> int:
-        key = self._register_lookup[addr >> 2]
-        if key == 0:
-            raise AccessFaultException
-        return key
+    def get_register(self, addr: int) -> int | None:
+        """Return the index matching this address if the register exists, else None"""
+        idx = self._register_lookup[addr >> 2]
+        return None if idx == 0 else idx
 
     def alloc_register(self, addr: int) -> int:
+        """
+        Find the next available location in the register values map and assign the
+        address `addr` to this location in the register lookup table.
+        """
         next_idx = self._register_lookup.max() + 1
-        if self._register_lookup[addr >> 2] != 0:
-            raise ValueError("Register already allocated at that byte address!")
-        else:
-            self._register_lookup[addr >> 2] = next_idx
+        self._register_lookup[addr >> 2] = next_idx
         return next_idx
 
     def set_register(self, addr: int, val: int) -> None:
-        pass
+        """
+        Set register at address `addr` to `val`, allocating one in the address
+        space if it does not exist.
+        """
+        idx = self.get_register(addr)
+        idx = self.alloc_register(addr) if idx is None else idx
+        self._register_values[idx] = val
 
     def read(self, addr: int, n_bytes: int) -> int:
-        key = self.get_key(addr)
+        key = self.get_register(addr)
+        if key is None:
+            raise UnallocatedAddressException
         value = self._register_values.item(key - 1)
         match n_bytes:
             case 1:
@@ -234,15 +253,17 @@ class SimControl(Peripheral):
         Example: a byte write of data takes the lowest 8 bits and writes them
         to the byte lane implied by the address.
         """
-        key = self.get_key(addr)
-        old_value = self._register_values[key]
+        idx = self.get_register(addr)
+        if idx is None:
+            raise UnallocatedAddressException
+        old_value = self._register_values.item(idx)
 
         mask = 1 << (n_bytes * 8) - 1
         lane = addr & 0xFF
         value = (data & mask) << lane
         mask <<= addr & lane  # move mask to correct byte lane
         # clear and set new value
-        self._register_values[key] = old_value & ~mask | value
+        self._register_values[idx] = old_value & ~mask | value
 
         for (trigger_addr, test_func), callback in self._triggers.items():
             if trigger_addr == addr and test_func(value, old_value):
@@ -273,7 +294,7 @@ class SimControl(Peripheral):
             them
             callback: a function to call when trigger condition is met
         """
-        self._triggers[(addr, test_func)] = callback
+        self._triggers[TriggerKey(addr, test_func)] = callback
 
 
 class AddressRange:

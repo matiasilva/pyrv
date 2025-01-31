@@ -21,7 +21,7 @@ RISC-V International.
 
 Under the hood, `pyrv` lays the groundwork for streamlined future ISA support
 with flexible and reusable components. Since no CPU exists in isolation, there
-are also SoC-level compoennts (SystemBus, Memory, Peripheral, and so on) that
+are also SoC-level components (SystemBus, Memory, Peripheral, and so on) that
 allow you to mix-and-match peripherals to build a custom Hart.
 
 typical Peripheral with registers and a declarative API to trigger callbacks on
