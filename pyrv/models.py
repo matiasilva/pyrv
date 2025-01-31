@@ -184,9 +184,9 @@ class TriggerKey(NamedTuple):
     test_func: Callable[[int, int], bool]
 
 
-class SimControl(Peripheral):
+class MemoryMappedPeripheral(Peripheral):
     """
-    Controls interaction with the simulator, like stopping the simulation.
+    Generic class for a peripheral with registers with side effects when accessed.
 
     An incoming byte address is mapped to a word address, which is then used to look up
     the index of the register value. The index is a location in the `_register_values`
@@ -295,6 +295,14 @@ class SimControl(Peripheral):
             callback: a function to call when trigger condition is met
         """
         self._triggers[TriggerKey(addr, test_func)] = callback
+
+
+class SimControl(MemoryMappedPeripheral):
+    """
+    Controls interaction with the simulator, like stopping the simulation.
+    """
+
+    pass
 
 
 class AddressRange:
