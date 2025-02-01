@@ -27,8 +27,4 @@ select = [
   "SIM",
   # isort
   "I",
-  #"ANN",
 ]
-
-[dependency-groups]
-dev = []
