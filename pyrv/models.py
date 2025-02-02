@@ -83,10 +83,18 @@ class RegisterFile:
 
 
 class Addressable(ABC):
+    """
+    An Addressable is any item that can be accessed by a byte address.
+
+    The SystemBus is responsible for verifying the integrity of an address,
+    this should not be a concern of the Addressable's read/write functions.
+    All Addressables should assume incoming addresses are safe.
+    """
+
     @abstractmethod
     def read(self, addr: int, n_bytes: int) -> int:
         """
-        Read a `n_bytes` at address `addr` from the peripheral.
+        Read `n_bytes` of data at address `addr` from the peripheral.
 
         If the peripheral is a memory, accesses of narrower width than the memory's
         contents return unknown data.
@@ -193,10 +201,16 @@ class MemoryMappedPeripheral(Peripheral):
     array. There is a memory usage penalty to pay for the O(1) lookup complexity. But
     as Amdahl's law says: make the common case fast! Register lookups are far more
     common than allocation.
+
+    The lookup table is word-addressed: this allows us to use the incoming address
+    as an index to the lookup table. The lookup table stores the index of the
+    register in the `self._register_values` array. 0 is a sentinel value and is
+    reserved. Real indices start from 1 and so must be subtracted by 1 to properly
+    index the `self._register_values` array.
     """
 
-    def __init__(self) -> None:
-        self._word_size = 8
+    def __init__(self, n_words: int) -> None:
+        self._word_size = n_words
         self._byte_size = self._word_size << 2
         assert self._word_size < 256  # only 255 values allowed, 0 reserved
         self._register_values = numpy.zeros(self._word_size, dtype=numpy.uint32)
@@ -204,8 +218,6 @@ class MemoryMappedPeripheral(Peripheral):
         """0 is a sentinel value, offset all indices by 1 and decode accordingly"""
         self._triggers: dict[TriggerKey, Callable] = {}
         """Indexes triggers using a tuple of address and test function"""
-
-        self.set_register(0x0, 0x0)
 
     def get_register(self, addr: int) -> int | None:
         """Return the index matching this address if the register exists, else None"""
@@ -228,7 +240,7 @@ class MemoryMappedPeripheral(Peripheral):
         """
         idx = self.get_register(addr)
         idx = self.alloc_register(addr) if idx is None else idx
-        self._register_values[idx] = val
+        self._register_values[idx - 1] = val
 
     def read(self, addr: int, n_bytes: int) -> int:
         key = self.get_register(addr)
@@ -240,7 +252,7 @@ class MemoryMappedPeripheral(Peripheral):
                 shift = (addr & 3) << 3
                 return value >> shift & 0xFF
             case 2:
-                shift = (addr & 2) << 2
+                shift = (addr & 2) << 3  # TODO: can probably merge these cases
                 return value >> shift & 0xFFFF
             case _:
                 return value
@@ -256,12 +268,13 @@ class MemoryMappedPeripheral(Peripheral):
         idx = self.get_register(addr)
         if idx is None:
             raise UnallocatedAddressException
+        idx -= 1
         old_value = self._register_values.item(idx)
 
-        mask = 1 << (n_bytes * 8) - 1
-        lane = addr & 0xFF
-        value = (data & mask) << lane
-        mask <<= addr & lane  # move mask to correct byte lane
+        mask = (1 << (n_bytes * 8)) - 1
+        lane_shift = (addr & 0x3) * 8
+        value = (data & mask) << lane_shift
+        mask <<= lane_shift  # move mask to correct byte lane
         # clear and set new value
         self._register_values[idx] = old_value & ~mask | value
 
@@ -302,7 +315,9 @@ class SimControl(MemoryMappedPeripheral):
     Controls interaction with the simulator, like stopping the simulation.
     """
 
-    pass
+    def __init__(self):
+        super().__init__(8)
+        self.set_register(0x0, 0x0)
 
 
 class AddressRange:
