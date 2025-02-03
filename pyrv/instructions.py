@@ -787,7 +787,7 @@ ITYPE_OPS = (
     "slli",
     "srli",
     "srai",
-    "lw",
+    "lw",  # non-register ops
     "lh",
     "lb",
     "lbu",

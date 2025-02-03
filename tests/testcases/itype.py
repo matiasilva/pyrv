@@ -14,7 +14,6 @@ class TestCaseIType:
     __test__ = False
 
 
-# TODO: add edge cases
 ITYPE_TESTCASES = {
     "addi": [
         TestCaseIType(
@@ -211,7 +210,7 @@ ITYPE_TESTCASES = {
             expected_rd=0xFF000000,
         ),
     ],
-    "lw": [],
+    "lw": [],  # empty entries for convenient double list comprehension in test
     "lh": [],
     "lb": [],
     "lbu": [],

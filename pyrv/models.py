@@ -5,6 +5,7 @@ Contains models of different hardware blocks, including the Hart.
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, NamedTuple
+from math import ceil
 
 import numpy
 import numpy.typing as npt
@@ -148,15 +149,18 @@ class Memory(Peripheral):
 
         Args:
             size: the size of the memory in KiB
-            width: the width of the memory in multiples of bytes
+            width: the width of the memory in byte multiples (1, 2, or 4)
         """
-        self._size = size
-        """The size of the memory in KiB"""
+        if width not in self.width2dtype:
+            raise ValueError(f"Width must be one of {list(self.width2dtype.keys())}")
+
+        self._size = size * 1024
+        """The size of the memory in bytes"""
 
         self._contents: npt.NDArray = numpy.zeros(
-            self._size * 1024, self.width2dtype[width]
+            ceil(self._size / width), self.width2dtype[width]
         )
-        """Internal container for our memory"""
+        """Internal container for the memory"""
 
     def _read(self, addr: int, n: int) -> npt.NDArray:
         """Read `n` bytes from the memory, starting at address `addr`"""
@@ -395,7 +399,7 @@ class SystemBus(Addressable):
 
         Validity checks:
             - n_bytes must be a power of 2
-            - n_bytes must be <= 4
+            - n_bytes must be <= 4 (32-bit bus)
             - alignment of `addr` on an `n_bytes` boundary
             - addr maps onto a valid peripheral in the system address map
             - addr + n_bytes is within a peripheral's address range
