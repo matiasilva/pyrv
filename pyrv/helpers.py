@@ -106,6 +106,11 @@ def bselect(bits: int, msb: int, lsb: int, shift: int = 0) -> int:
     return (mask & bits >> lsb) << shift
 
 
+def bmask(n: int) -> int:
+    """Given number of bytes `n`, return a mask for those bytes."""
+    return (1 << (n * 8)) - 1
+
+
 class AddressMisalignedException(Exception):
     pass
 

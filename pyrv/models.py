@@ -4,8 +4,8 @@ Contains models of different hardware blocks, including the Hart.
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import TYPE_CHECKING, NamedTuple
 from math import ceil
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy
 import numpy.typing as npt
@@ -15,6 +15,7 @@ from pyrv.helpers import (
     AddressMisalignedException,
     MutableRegister,
     Register,
+    bmask,
 )
 
 if TYPE_CHECKING:
@@ -141,40 +142,38 @@ class Peripheral(Addressable):
 class Memory(Peripheral):
     """Generic Memory class, implementing a few basic methods"""
 
-    width2dtype = {1: numpy.uint8, 2: numpy.uint16, 4: numpy.uint32}
+    # width2dtype = {1: numpy.uint8, 2: numpy.uint16, 4: numpy.uint32}
 
     def __init__(self, size: int, width: int = 1):
         """
         Initializes the Memory class with size and width args.
 
         Args:
-            size: the size of the memory in KiB
+            size: the size of the memory in bytes
             width: the width of the memory in byte multiples (1, 2, or 4)
         """
-        if width not in self.width2dtype:
-            raise ValueError(f"Width must be one of {list(self.width2dtype.keys())}")
+        # if width not in self.width2dtype:
+        #     raise ValueError(f"Width must be one of {list(self.width2dtype.keys())}")
 
-        self._size = size * 1024
+        self._size = size
         """The size of the memory in bytes"""
 
-        self._contents: npt.NDArray = numpy.zeros(
-            ceil(self._size / width), self.width2dtype[width]
-        )
+        self._contents: npt.NDArray = numpy.zeros(self._size, numpy.uint8)
         """Internal container for the memory"""
-
-    def _read(self, addr: int, n: int) -> npt.NDArray:
-        """Read `n` bytes from the memory, starting at address `addr`"""
-        return self._contents[addr : addr + n]
 
     def _write_bytes(self, addr: int, data: bytes) -> None:
         """Write `data` bytes to memory, starting at address `addr`"""
         self._contents[addr : addr + len(data)] = memoryview(data)
 
     def read(self, addr, n_bytes) -> int:
-        return self._read(addr, n_bytes).astype(self.width2dtype[n_bytes]).item(0)
+        return int.from_bytes(
+            self._contents[addr : addr + n_bytes].tobytes(), byteorder="little"
+        )
 
     def write(self, addr, data, n_bytes):
-        self._write_bytes(addr, data.to_bytes(n_bytes, byteorder="little"))
+        mask = bmask(n_bytes)
+        data_lsbs = data & mask
+        self._write_bytes(addr, data_lsbs.to_bytes(n_bytes, byteorder="little"))
 
 
 class InstructionMemory(Memory):
@@ -275,7 +274,7 @@ class MemoryMappedPeripheral(Peripheral):
         idx -= 1
         old_value = self._register_values.item(idx)
 
-        mask = (1 << (n_bytes * 8)) - 1
+        mask = bmask(n_bytes)
         lane_shift = (addr & 0x3) * 8
         value = (data & mask) << lane_shift
         mask <<= lane_shift  # move mask to correct byte lane
