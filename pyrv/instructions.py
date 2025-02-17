@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, TypedDict, TypeVar, get_args
 
-from pyrv.helpers import InvalidInstructionError, se, bselect
+from pyrv.helpers import InvalidInstructionError, bselect, se
 from pyrv.models import RegisterFile
 
 if TYPE_CHECKING:

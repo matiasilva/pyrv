@@ -2,9 +2,9 @@
 Contains models of different hardware blocks, including the Hart.
 """
 
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from math import ceil
 from typing import TYPE_CHECKING, NamedTuple
 
 import numpy
@@ -177,13 +177,13 @@ class Memory(Peripheral):
 
 
 class InstructionMemory(Memory):
-    def __init__(self):
-        super().__init__(2 * 1024, 4)
+    def __init__(self, size: int):
+        super().__init__(size)
 
 
 class DataMemory(Memory):
-    def __init__(self):
-        super().__init__(6 * 1024)
+    def __init__(self, size: int):
+        super().__init__(size)
 
 
 class UnallocatedAddressException(Exception):
@@ -355,6 +355,7 @@ class SystemBus(Addressable):
     def __init__(self, hart: "Hart"):
         self._hart = hart
         self._slave_ports: dict[str, tuple[AddressRange, Peripheral]] = {}
+        self._log = logging.getLogger(__name__)
 
     def read(self, addr, n_bytes):
         peripheral, offset = self.get_access(addr, n_bytes)
@@ -424,6 +425,7 @@ class SystemBus(Addressable):
         The access occurs at address `addr` and has an extent of `n_bytes`. If this
         access is invalid, then no peripheral is returned.
         """
+        self._log.debug(f"Access request at {addr=} for {n_bytes=}")
         valid_access = self.check_access(addr, n_bytes)
         if not valid_access:
             raise AccessFaultException(

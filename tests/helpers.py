@@ -34,11 +34,11 @@ COMPILE_CMD = [
 ]
 
 
-def compile_sourcefile(build_dir: Path, testcase: str) -> Path:
+def compile_sourcefile(build_dir: Path, testcase: str, extension: str = ".elf") -> Path:
     """Compile source file (.S or .c) to an executable object file"""
 
     in_path = get_rel_file(f"testcases/{testcase}")
-    out_path = build_dir / in_path.with_suffix(".elf").name
+    out_path = build_dir / in_path.with_suffix(extension).name
     cmd = COMPILE_CMD + ["-o", str(out_path), str(in_path)]
 
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -47,3 +47,22 @@ def compile_sourcefile(build_dir: Path, testcase: str) -> Path:
             f"sourcefile compilation failed:\n{result.stderr}\n{result.args}"
         )
     return out_path
+
+
+def get_section_bytes(build_dir: Path, testcase: str, section: str) -> list[int]:
+    in_path = compile_sourcefile(build_dir, testcase, ".o")
+    out_path = build_dir / in_path.with_suffix(".bin").name
+    cmd = [
+        rvbinpath("objcopy"),
+        "-O",
+        "binary",
+        "--only-section",
+        f"{section}",
+        str(in_path),
+        str(out_path),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"object copy failed:\n{result.stderr}\n{result.args}")
+    with open(out_path, "rb") as binfile:
+        return list(binfile.read())
