@@ -25,6 +25,8 @@ class Hart:
     INSTRUCTION_MEMORY_SIZE = 2 * 1024 * 1024
     DATA_MEMORY_BASE = INSTRUCTION_MEMORY_BASE + INSTRUCTION_MEMORY_SIZE
     DATA_MEMORY_SIZE = 6 * 1024 * 1024
+    SIM_CONTROL_BASE = 0xFFFFFFEF
+    SIM_CONTROL_SIZE = 0x10
 
     def __init__(self):
         self.pc: MutableRegister = MutableRegister()
@@ -34,6 +36,9 @@ class Hart:
         # memories
         self.data_memory = DataMemory(self.DATA_MEMORY_SIZE)
         self.instruction_memory = InstructionMemory(self.INSTRUCTION_MEMORY_SIZE)
+
+        # peripherals
+        self.sim_control = SimControl()
 
         self.system_bus = SystemBus(self)
         self.system_bus.add_slave_port(
@@ -48,9 +53,12 @@ class Hart:
             self.DATA_MEMORY_SIZE,
             self.data_memory,
         )
-
-        # peripherals
-        self.sim_control = SimControl()
+        self.system_bus.add_slave_port(
+            "simulation control",
+            self.SIM_CONTROL_BASE,
+            self.SIM_CONTROL_SIZE,
+            self.sim_control,
+        )
 
         self._log = logging.getLogger(__name__)
 

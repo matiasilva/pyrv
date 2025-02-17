@@ -16,16 +16,13 @@ RISC-V International.
 ## Features
 
 - RV32I Base Integer ISA support, v2.1
+- runs native ELF files and supports raw binary files
 - C runtime support
-- loads native ELF files or binary files
 
-Under the hood, `pyrv` lays the groundwork for streamlined future ISA support
-with flexible and reusable components. Since no CPU exists in isolation, there
-are also SoC-level components (SystemBus, Memory, Peripheral, and so on) that
-allow you to mix-and-match peripherals to build a custom Hart.
-
-typical Peripheral with registers and a declarative API to trigger callbacks on
-specific field changes.
+`pyrv` lays the groundwork for streamlined future ISA support with flexible and
+reusable components. Since no CPU exists in isolation, there are also SoC-level
+components (SystemBus, Memory, Peripheral, and so on) that allow you to
+mix-and-match peripherals to build a custom Hart.
 
 ## Getting started
 
@@ -33,7 +30,64 @@ specific field changes.
 system-wide or in a virtual environment by running `pip install .` in a cloned
 version of this repository.
 
-A simple demo:
+You can run a binary by invoking the `pyrv` script:
+
+```bash
+pyrv my_binary.elf
+```
+
+Under the hood, this initializes the Hart and kicks off the instruction loop:
+
+1. Inspect the ELF file and validate it
+2. Load the correct ELF segments into memory
+3. Begin the instruction loop: fetch, decode, execute
+
+To exit the simulation environment, software must write 1 to the `CONTROL`
+register of the `SimControl` block. The instruction loop polls for this bit and
+exits if asserted.
+
+## Useful tips
+
+`pyrv` has a toolbox of components ready to be used with a Hart.
+
+### System bus
+
+The system bus ties all peripherals together, with built-in filtering and
+validation of addresses. This is akin to the "bus fabric" on modern
+microcontrollers. To add an address range to the system bus:
+
+```python
+system_bus.add_slave_port(
+    "instruction memory",
+    INSTRUCTION_MEMORY_BASE,
+    INSTRUCTION_MEMORY_SIZE,
+    instruction_memory,
+)
+```
+
+### Registers
+
+You can create a Peripheral with registers by simply subclassing the
+`MemoryMappedPeripheral` class. This also adds the mixins associated with a
+read/write peripheral.
+
+Defining registers is easily done with additive functions, paving the way for
+future deserialization support using a register definition language, like
+SystemRDL.
+
+There is a declarative API to trigger callbacks on specific field changes. The
+below code tells the Hart to monitor the 32-bit register at address 0 for any
+new values falling within the specified range.
+
+```python
+peripheral.add_trigger(0x0, lambda new, old: MIN_VALUE <= new <= MAX_VALUE,
+                       callback)
+```
+
+### The simulator
+
+The simulator creates the instruction loop and is stepped forward by calling the
+`Hart`'s `.step()` method.
 
 ## Development
 
